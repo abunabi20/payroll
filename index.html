@@ -1,0 +1,1362 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>نظام إدارة رواتب العمال</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getDatabase, ref, set, get, onValue, push, remove, update }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+ 
+// ========== FIREBASE CONFIG ==========
+// استبدل هذه القيم بقيم مشروعك على Firebase
+const firebaseConfig = {
+  apiKey: "AIzaSyB4DNTl3_cECLj8oWrSPPJvdVGoH6WxfBU",
+  authDomain: "salary-abunabi.firebaseapp.com",
+  databaseURL: "https://salary-abunabi-default-rtdb.firebaseio.com",
+  projectId: "salary-abunabi",
+  storageBucket: "salary-abunabi.firebasestorage.app",
+  messagingSenderId: "622390153385",
+  appId: "1:622390153385:web:b652d6662cd0afd08759b8",
+  measurementId: "G-ML74G9S7ZE"
+};
+ 
+const ALLOWED_EMAILS = [
+  'abunabi@gmail.com','abunabi20@gmail.com','abunabi22@gmail.com',
+  'abunabi4@gmail.com','abunabi2000@hotmail.com','majiid1.q8@gmail.com',
+  'majiid.q8@gmail.com','abunabi28@gmail.com'
+];
+ 
+let app, db, DB = { employees:[], salaries:[], loans:[], banks:[], beneficiaries:[], customRoles:[], nextEmpId:1, nextSalId:1, nextLoanId:1 };
+let fbConfigured = false;
+ 
+window.initFirebase = function() {
+  try {
+    const cfg = firebaseConfig;
+    if (cfg.apiKey === 'REPLACE_API_KEY') { useFallbackMode(); return; }
+    app = initializeApp(cfg);
+    db = getDatabase(app);
+    fbConfigured = true;
+    // Real-time listener
+    onValue(ref(db, 'payroll'), (snap) => {
+      if (snap.exists()) {
+        const d = snap.val();
+        DB = { ...DB, ...d };
+        if (window.appReady) refreshAllViews();
+      }
+    });
+    window.showToast('🔥 متصل بـ Firebase — المزامنة التلقائية فعّالة ✅', 'success');
+  } catch(e) { useFallbackMode(); }
+};
+ 
+window.fbSave = async function() {
+  if (!fbConfigured || !db) { localSave(); return; }
+  try {
+    await set(ref(db, 'payroll'), DB);
+    localSave();
+  } catch(e) { localSave(); window.showToast('⚠️ تعذّر الحفظ السحابي، تم الحفظ محلياً', 'warn'); }
+};
+ 
+window.ALLOWED_EMAILS = ALLOWED_EMAILS;
+ 
+function useFallbackMode() {
+  fbConfigured = false;
+  window.showToast('💾 وضع محلي — Firebase غير مُعدّ بعد', 'warn');
+}
+ 
+function localSave() { try { localStorage.setItem('payroll_v2', JSON.stringify(DB)); } catch(e){} }
+function localLoad() { try { const d = localStorage.getItem('payroll_v2'); if(d) DB = {...DB, ...JSON.parse(d)}; } catch(e){} }
+ 
+window.DB = DB;
+window.fbConfigured_ref = () => fbConfigured;
+localLoad();
+</script>
+<style>
+:root {
+  --gold:#C9A84C;--gold-light:#E8C97A;--gold-dark:#9A7A2E;
+  --navy:#0D1B2A;--navy-mid:#1B2E42;--navy-light:#243B53;--navy-card:#162233;
+  --white:#F5F0E8;--white-dim:#C8BFA8;
+  --red:#E05C5C;--red-soft:#FF8A8A;--green:#4CAF7D;--green-soft:#7ECBA0;
+  --orange:#E8944A;--blue:#4A9EE8;--gray:#6B7A8D;
+  --sg: 0 4px 20px rgba(201,168,76,.25);--sc: 0 8px 32px rgba(0,0,0,.4);
+  --r:16px;--rs:8px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Cairo',sans-serif;background:var(--navy);color:var(--white);min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 20% 20%,rgba(201,168,76,.07) 0%,transparent 50%),radial-gradient(ellipse at 80% 80%,rgba(74,158,232,.05) 0%,transparent 50%);pointer-events:none;z-index:0;}
+ 
+/* SYNC INDICATOR */
+#syncBar{position:fixed;top:0;left:0;right:0;height:3px;background:transparent;z-index:9998;transition:all .3s;}
+#syncBar.syncing{background:linear-gradient(90deg,var(--gold),var(--green),var(--blue));animation:syncAnim 1s infinite;}
+#syncBar.done{background:var(--green);animation:fadeBar .8s forwards;}
+@keyframes syncAnim{0%{opacity:.5}50%{opacity:1}100%{opacity:.5}}
+@keyframes fadeBar{0%{opacity:1}100%{opacity:0}}
+ 
+/* LOGIN */
+#loginScreen{position:fixed;inset:0;background:var(--navy);z-index:9999;display:flex;align-items:center;justify-content:center;}
+.login-card{background:var(--navy-card);border:1px solid rgba(201,168,76,.3);border-radius:24px;padding:48px 40px;width:400px;max-width:95vw;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.6);}
+.login-logo{width:72px;height:72px;background:linear-gradient(135deg,var(--gold-dark),var(--gold));border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:36px;margin:0 auto 20px;}
+ 
+/* HEADER */
+.header{background:linear-gradient(135deg,var(--navy-card),var(--navy-mid));border-bottom:2px solid var(--gold-dark);position:sticky;top:0;z-index:100;box-shadow:0 4px 30px rgba(0,0,0,.5);}
+.header-inner{display:flex;align-items:center;justify-content:space-between;padding:12px 24px;gap:12px;flex-wrap:wrap;}
+.logo-area{display:flex;align-items:center;gap:12px;}
+.logo-icon{width:46px;height:46px;background:linear-gradient(135deg,var(--gold),var(--gold-dark));border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:var(--sg);}
+.logo-text h1{font-size:18px;font-weight:900;color:var(--gold-light);}
+.logo-text p{font-size:11px;color:var(--white-dim);}
+ 
+/* SYNC STATUS */
+.sync-status{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;padding:5px 10px;border-radius:20px;border:1px solid;white-space:nowrap;}
+.sync-status.live{color:var(--green-soft);border-color:var(--green);background:rgba(76,175,125,.1);}
+.sync-status.local{color:var(--orange);border-color:var(--orange);background:rgba(232,148,74,.1);}
+.sync-dot{width:7px;height:7px;border-radius:50%;animation:pulse 1.5s infinite;}
+.sync-status.live .sync-dot{background:var(--green);}
+.sync-status.local .sync-dot{background:var(--orange);}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.4);opacity:.6}}
+ 
+/* NAV */
+.nav-tabs{display:flex;gap:3px;background:var(--navy);padding:4px;border-radius:10px;overflow-x:auto;}
+.nav-tab{padding:8px 14px;border:none;border-radius:7px;background:transparent;color:var(--white-dim);font-family:'Cairo',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;white-space:nowrap;display:flex;align-items:center;gap:5px;}
+.nav-tab:hover{color:var(--gold-light);background:rgba(201,168,76,.08);}
+.nav-tab.active{background:linear-gradient(135deg,var(--gold-dark),var(--gold));color:var(--navy);font-weight:700;box-shadow:var(--sg);}
+ 
+/* MAIN */
+.main{max-width:1400px;margin:0 auto;padding:24px 20px;position:relative;z-index:1;}
+.page{display:none;}.page.active{display:block;animation:fadeIn .3s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+ 
+/* CARDS */
+.card{background:var(--navy-card);border:1px solid rgba(201,168,76,.18);border-radius:var(--r);padding:22px;box-shadow:var(--sc);}
+.card-title{font-size:14px;font-weight:700;color:var(--gold-light);margin-bottom:18px;padding-bottom:10px;border-bottom:1px solid rgba(201,168,76,.12);display:flex;align-items:center;gap:7px;}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;}
+@media(max-width:900px){.grid-2,.grid-3{grid-template-columns:1fr;}}
+ 
+/* STATS */
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:24px;}
+.stat-card{background:var(--navy-card);border:1px solid rgba(201,168,76,.18);border-radius:var(--r);padding:18px;transition:transform .2s,box-shadow .2s;position:relative;overflow:hidden;}
+.stat-card:hover{transform:translateY(-2px);box-shadow:var(--sg);}
+.stat-card::before{content:'';position:absolute;top:0;right:0;width:70px;height:70px;border-radius:0 0 0 70px;opacity:.12;}
+.stat-card.gold::before{background:var(--gold)}.stat-card.green::before{background:var(--green)}.stat-card.red::before{background:var(--red)}.stat-card.blue::before{background:var(--blue)}
+.stat-icon{font-size:26px;margin-bottom:8px;}.stat-value{font-size:26px;font-weight:900;color:var(--gold-light);}
+.stat-value.gv{color:var(--green-soft)}.stat-value.rv{color:var(--red-soft)}.stat-value.bv{color:var(--blue)}
+.stat-label{font-size:12px;color:var(--white-dim);margin-top:3px;}
+ 
+/* FORM */
+.form-group{margin-bottom:16px;}
+.form-group label{display:block;font-size:12px;font-weight:700;color:var(--gold-light);margin-bottom:6px;}
+.req{color:var(--red-soft);}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+@media(max-width:600px){.form-row{grid-template-columns:1fr;}}
+input,select,textarea{width:100%;background:var(--navy-mid);border:1.5px solid rgba(201,168,76,.22);border-radius:var(--rs);padding:10px 13px;color:var(--white);font-family:'Cairo',sans-serif;font-size:13px;transition:border-color .2s,box-shadow .2s;outline:none;}
+input:focus,select:focus,textarea:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,168,76,.12);}
+select option{background:var(--navy-mid);}
+.amount-wrap{position:relative;}.amount-wrap input{padding-left:46px;}
+.amount-sfx{position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:12px;font-weight:700;color:var(--gold);pointer-events:none;}
+ 
+/* BUTTONS */
+.btn{padding:10px 20px;border:none;border-radius:var(--rs);font-family:'Cairo',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:7px;}
+.btn-gold{background:linear-gradient(135deg,var(--gold-dark),var(--gold));color:var(--navy);box-shadow:var(--sg);}
+.btn-gold:hover{filter:brightness(1.1);transform:translateY(-1px);}
+.btn-outline{background:transparent;border:1.5px solid var(--gold);color:var(--gold-light);}
+.btn-outline:hover{background:rgba(201,168,76,.1);}
+.btn-red{background:rgba(224,92,92,.18);border:1.5px solid var(--red);color:var(--red-soft);}
+.btn-red:hover{background:rgba(224,92,92,.32);}
+.btn-green{background:rgba(76,175,125,.18);border:1.5px solid var(--green);color:var(--green-soft);}
+.btn-green:hover{background:rgba(76,175,125,.32);}
+.btn-blue{background:rgba(74,158,232,.18);border:1.5px solid var(--blue);color:var(--blue);}
+.btn-sm{padding:6px 13px;font-size:11px;}
+.btn-save{background:linear-gradient(135deg,rgba(76,175,125,.3),rgba(76,175,125,.15));border:1.5px solid var(--green);color:var(--green-soft);}
+ 
+/* TOGGLE */
+.radio-toggle{display:flex;gap:8px;flex-wrap:wrap;}
+.radio-toggle label{display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 14px;border:1.5px solid rgba(201,168,76,.22);border-radius:7px;cursor:pointer;font-size:12px;font-weight:600;color:var(--white-dim);transition:all .2s;flex:1;}
+.radio-toggle input[type="radio"]{display:none;}
+.lbl-cash.sel{background:rgba(76,175,125,.18);border-color:var(--green);color:var(--green-soft);}
+.lbl-transfer.sel{background:rgba(74,158,232,.18);border-color:var(--blue);color:var(--blue);}
+.lbl-active.sel{background:rgba(76,175,125,.18);border-color:var(--green);color:var(--green-soft);}
+.lbl-leave.sel{background:rgba(107,122,141,.18);border-color:var(--gray);color:var(--gray);}
+ 
+/* EMP SELECTOR */
+.emp-selector{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-bottom:22px;}
+.emp-card-sel{background:var(--navy-mid);border:2px solid rgba(201,168,76,.18);border-radius:12px;padding:14px 10px;cursor:pointer;text-align:center;transition:all .25s;position:relative;}
+.emp-card-sel:hover{border-color:var(--gold);transform:translateY(-2px);}
+.emp-card-sel.selected{border-color:var(--gold);background:rgba(201,168,76,.1);box-shadow:var(--sg);}
+.emp-card-sel.on-leave{opacity:.6;border-color:var(--gray);}
+.emp-avatar{width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,var(--gold-dark),var(--navy-card));display:flex;align-items:center;justify-content:center;font-size:22px;margin:0 auto 8px;border:2px solid rgba(201,168,76,.25);}
+.emp-card-name{font-size:12px;font-weight:700;color:var(--white);margin-bottom:3px;}
+.emp-card-role{font-size:10px;color:var(--white-dim);margin-bottom:5px;}
+ 
+/* BADGE */
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;}
+.badge-active{background:rgba(76,175,125,.18);color:var(--green-soft);border:1px solid var(--green);}
+.badge-leave{background:rgba(107,122,141,.18);color:var(--gray);border:1px solid var(--gray);}
+.badge-loan{background:rgba(232,148,74,.18);color:var(--orange);border:1px solid var(--orange);}
+.badge-partial{background:rgba(74,158,232,.18);color:var(--blue);border:1px solid var(--blue);}
+.badge-paid{background:rgba(76,175,125,.18);color:var(--green-soft);border:1px solid var(--green);}
+ 
+/* TABLE */
+.table-wrap{overflow-x:auto;border-radius:var(--rs);}
+table{width:100%;border-collapse:collapse;font-size:12px;}
+thead tr{background:linear-gradient(135deg,var(--navy-mid),var(--navy-light));}
+thead th{padding:11px 13px;text-align:right;font-weight:700;color:var(--gold-light);font-size:11px;border-bottom:2px solid rgba(201,168,76,.25);white-space:nowrap;}
+tbody tr{border-bottom:1px solid rgba(201,168,76,.07);transition:background .15s;}
+tbody tr:hover{background:rgba(201,168,76,.04);}
+tbody td{padding:10px 13px;color:var(--white);vertical-align:middle;}
+tr.row-late{background:rgba(224,92,92,.1)!important;}tr.row-late:hover{background:rgba(224,92,92,.16)!important;}
+tr.row-loan{background:rgba(232,148,74,.1)!important;}tr.row-loan:hover{background:rgba(232,148,74,.16)!important;}
+tr.row-leave{background:rgba(107,122,141,.1)!important;}tr.row-leave:hover{background:rgba(107,122,141,.16)!important;}
+tr.row-partial{background:rgba(74,158,232,.08)!important;}
+ 
+/* ALERT */
+.alert{padding:12px 16px;border-radius:var(--rs);margin-bottom:14px;display:flex;align-items:flex-start;gap:9px;font-size:12px;font-weight:600;}
+.alert-warn{background:rgba(232,148,74,.13);border:1px solid var(--orange);color:var(--orange);}
+.alert-ok{background:rgba(76,175,125,.13);border:1px solid var(--green);color:var(--green-soft);}
+.alert-err{background:rgba(224,92,92,.13);border:1px solid var(--red);color:var(--red-soft);}
+ 
+/* TRANSFER BOX */
+.transfer-box{background:rgba(74,158,232,.05);border:1px solid rgba(74,158,232,.2);border-radius:10px;padding:14px;margin-top:8px;}
+.loan-box{background:rgba(232,148,74,.05);border:1px solid rgba(232,148,74,.2);border-radius:10px;padding:14px;margin-top:8px;}
+ 
+/* REPEAT MONTHS */
+.repeat-box{background:rgba(74,158,232,.05);border:1px solid rgba(74,158,232,.18);border-radius:10px;padding:12px;margin-top:10px;}
+.rm-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:5px;}
+.rm-btn{padding:6px 2px;background:var(--navy-mid);border:1.5px solid rgba(74,158,232,.2);border-radius:6px;color:var(--white-dim);font-family:'Cairo',sans-serif;font-size:10px;font-weight:700;cursor:pointer;text-align:center;transition:all .2s;}
+.rm-btn.active{background:rgba(74,158,232,.2);border-color:var(--blue);color:var(--blue);}
+.rm-btn.current{opacity:.35;cursor:not-allowed;border-style:dashed;}
+ 
+/* SALARY DISPLAY */
+.sal-display{font-size:36px;font-weight:900;color:var(--gold-light);text-align:center;padding:16px;background:rgba(201,168,76,.05);border:1px solid rgba(201,168,76,.12);border-radius:10px;margin:12px 0;}
+.sal-display small{display:block;font-size:13px;color:var(--white-dim);font-weight:500;margin-top:4px;}
+ 
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);z-index:999;display:flex;align-items:center;justify-content:center;animation:fadeIn .2s ease;}
+.modal{background:var(--navy-card);border:1px solid rgba(201,168,76,.28);border-radius:18px;padding:26px;width:480px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.6);position:relative;}
+.modal-title{font-size:17px;font-weight:800;color:var(--gold-light);margin-bottom:18px;display:flex;align-items:center;gap:9px;}
+.modal-close{position:absolute;top:14px;left:14px;background:rgba(224,92,92,.18);border:1px solid var(--red);color:var(--red-soft);border-radius:7px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;}
+.modal-close:hover{background:rgba(224,92,92,.35);}
+ 
+/* YEAR TABS */
+.year-tabs{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:18px;}
+.year-tab{padding:7px 18px;background:var(--navy-mid);border:1.5px solid rgba(201,168,76,.18);border-radius:7px;color:var(--white-dim);font-family:'Cairo',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;}
+.year-tab.active{background:linear-gradient(135deg,var(--gold-dark),var(--gold));color:var(--navy);border-color:var(--gold);}
+ 
+/* LEGEND */
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px;}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--white-dim);font-weight:600;}
+.legend-dot{width:13px;height:13px;border-radius:3px;flex-shrink:0;}
+ 
+/* CHART */
+.chart-box{background:var(--navy-card);border:1px solid rgba(201,168,76,.13);border-radius:var(--r);padding:20px;height:350px;position:relative;}
+ 
+/* NOTIF DOT */
+.notif-dot{width:8px;height:8px;background:var(--red);border-radius:50%;position:absolute;top:-2px;left:-2px;animation:pulse 1.5s infinite;}
+ 
+/* DIVIDER */
+hr.div{border:none;border-top:1px solid rgba(201,168,76,.1);margin:18px 0;}
+ 
+/* EMPTY */
+.empty{text-align:center;padding:40px 20px;color:var(--white-dim);}
+.empty .ei{font-size:44px;margin-bottom:12px;opacity:.45;}
+ 
+/* SECTION TITLE */
+.sec-title{display:flex;align-items:center;gap:11px;margin-bottom:22px;}
+.sec-title .ib{width:40px;height:40px;background:linear-gradient(135deg,var(--gold-dark),var(--gold));border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;}
+.sec-title h2{font-size:20px;font-weight:800;color:var(--gold-light);}
+.sec-title p{font-size:12px;color:var(--white-dim);}
+ 
+/* SCROLLBAR */
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:var(--navy);}
+::-webkit-scrollbar-thumb{background:var(--gold-dark);border-radius:3px;}
+ 
+/* RESPONSIVE */
+@media(max-width:600px){.stats-row{grid-template-columns:1fr 1fr;}.header-inner{padding:10px 14px;}.main{padding:14px 10px;}.rm-grid{grid-template-columns:repeat(4,1fr);}}
+ 
+/* FIREBASE SETUP SCREEN */
+.setup-screen{background:var(--navy-card);border:1px solid rgba(201,168,76,.25);border-radius:20px;padding:30px;max-width:600px;margin:40px auto;}
+ 
+/* TOAST */
+#toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--navy-card);border:1px solid var(--gold);color:var(--gold-light);padding:11px 22px;border-radius:9px;font-family:'Cairo',sans-serif;font-size:13px;font-weight:700;z-index:9999;display:none;box-shadow:var(--sg);}
+</style>
+</head>
+<body>
+ 
+<div id="syncBar"></div>
+ 
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">💼</div>
+    <h1 style="font-size:21px;font-weight:900;color:var(--gold-light);margin-bottom:4px;">نظام إدارة الرواتب</h1>
+    <p style="font-size:12px;color:var(--white-dim);margin-bottom:26px;">أدخل بريدك الإلكتروني للدخول</p>
+    <div style="text-align:right;margin-bottom:18px;">
+      <label style="display:block;font-size:12px;font-weight:700;color:var(--gold-light);margin-bottom:6px;">📧 البريد الإلكتروني</label>
+      <input type="email" id="emailInput" placeholder="example@gmail.com"
+        style="text-align:right;" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <div id="loginErr" style="display:none;" class="alert alert-err">❌ هذا البريد غير مصرح له بالدخول</div>
+    <button class="btn btn-gold" style="width:100%;justify-content:center;padding:13px;font-size:14px;" onclick="doLogin()">🔓 دخول</button>
+  </div>
+</div>
+ 
+<!-- APP -->
+<div id="appContent" style="display:none;">
+ 
+<!-- HEADER -->
+<header class="header">
+  <div class="header-inner">
+    <div class="logo-area">
+      <div class="logo-icon">💼</div>
+      <div class="logo-text">
+        <h1>نظام إدارة الرواتب</h1>
+        <p>إدارة رواتب العمال والسلف</p>
+      </div>
+    </div>
+    <div class="nav-tabs">
+      <button class="nav-tab active" onclick="showPage('dashboard')" id="tab-dashboard"><span>🏠</span> الرئيسية</button>
+      <button class="nav-tab" onclick="showPage('employees')" id="tab-employees"><span>👥</span> الموظفون</button>
+      <button class="nav-tab" onclick="showPage('salary')" id="tab-salary"><span>💰</span> تسجيل راتب</button>
+      <button class="nav-tab" onclick="showPage('loans')" id="tab-loans"><span>📋</span> السلف</button>
+      <button class="nav-tab" onclick="showPage('reports')" id="tab-reports"><span>📊</span> التقارير</button>
+      <button class="nav-tab" onclick="showPage('charts')" id="tab-charts"><span>📈</span> الرسوم</button>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <div id="syncStatusBadge" class="sync-status local"><div class="sync-dot"></div><span id="syncStatusText">محلي</span></div>
+      <button class="btn btn-save btn-sm" onclick="manualSave()">💾 حفظ</button>
+      <button class="btn btn-blue btn-sm" onclick="openSetupModal()">⚙️ Firebase</button>
+      <div style="font-size:11px;color:var(--white-dim);white-space:nowrap;" id="currentDate"></div>
+    </div>
+  </div>
+</header>
+ 
+<div class="main">
+ 
+<!-- DASHBOARD -->
+<div class="page active" id="page-dashboard">
+  <div class="sec-title"><div class="ib">🏠</div><div><h2>لوحة التحكم</h2><p>نظرة عامة</p></div></div>
+  <div class="stats-row" id="dashStats"></div>
+  <div class="grid-2" style="margin-bottom:18px;">
+    <div class="card"><div class="card-title">⚠️ تنبيهات</div><div id="dashAlerts"></div></div>
+    <div class="card"><div class="card-title">📅 آخر العمليات</div><div id="dashRecent"></div></div>
+  </div>
+  <div class="card"><div class="card-title">👥 حالة الموظفين</div>
+    <div class="table-wrap"><table><thead><tr>
+      <th>الموظف</th><th>المسمى</th><th>الراتب</th><th>الحالة</th><th>آخر راتب</th><th>سلفة</th><th>إجراء</th>
+    </tr></thead><tbody id="dashEmpTable"></tbody></table></div>
+  </div>
+</div>
+ 
+<!-- EMPLOYEES -->
+<div class="page" id="page-employees">
+  <div class="sec-title"><div class="ib">👥</div><div><h2>إدارة الموظفين</h2><p>إضافة وتعديل</p></div></div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title" id="empFormTitle">➕ إضافة موظف</div>
+      <input type="hidden" id="editEmpId">
+      <div class="form-row">
+        <div class="form-group"><label>الاسم <span class="req">*</span></label><input type="text" id="empName" placeholder="اسم الموظف"></div>
+        <div class="form-group"><label>المسمى الوظيفي <span class="req">*</span></label>
+          <select id="empRole"><option value="">-- اختر --</option></select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>إضافة / تعديل مسمى</label>
+        <div style="display:flex;gap:7px;">
+          <input type="text" id="newRoleInput" placeholder="مسمى جديد..." style="flex:1;">
+          <button class="btn btn-outline btn-sm" onclick="addNewRole()">➕</button>
+          <button class="btn btn-blue btn-sm" onclick="openManageRolesModal()">⚙️</button>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>الراتب (ر.س) <span class="req">*</span></label>
+          <div class="amount-wrap"><span class="amount-sfx">ر.س</span><input type="number" id="empSalary" placeholder="0"></div>
+        </div>
+        <div class="form-group"><label>تاريخ البدء</label><input type="date" id="empStartDate"></div>
+      </div>
+      <div class="form-group"><label>الحالة</label>
+        <div class="radio-toggle">
+          <label class="lbl-active sel" id="lbl-active" onclick="setEmpStatus('active')"><input type="radio" name="es" value="active" checked><span>✅ على رأس العمل</span></label>
+          <label class="lbl-leave" id="lbl-leave" onclick="setEmpStatus('leave')"><input type="radio" name="es" value="leave"><span>🌴 إجازة</span></label>
+        </div>
+      </div>
+      <div class="form-group"><label>ملاحظات</label><textarea id="empNotes" rows="2" placeholder="ملاحظات..."></textarea></div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-gold" onclick="saveEmployee()">💾 حفظ الموظف</button>
+        <button class="btn btn-outline" onclick="clearEmpForm()">🔄 مسح</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">📋 قائمة الموظفين (<span id="empCount">0</span>)</div>
+      <div id="empListCards" style="max-height:520px;overflow-y:auto;padding-left:4px;"></div>
+    </div>
+  </div>
+</div>
+ 
+<!-- SALARY -->
+<div class="page" id="page-salary">
+  <div class="sec-title"><div class="ib">💰</div><div><h2>تسجيل الرواتب</h2><p>اختر الموظف وسجّل</p></div></div>
+  <div class="card" style="margin-bottom:18px;">
+    <div class="card-title">👤 اختر الموظف</div>
+    <div class="emp-selector" id="empSelectorCards"></div>
+  </div>
+  <div id="salaryFormArea" style="display:none;">
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">📅 بيانات الراتب</div>
+        <div id="selectedEmpInfo" style="margin-bottom:14px;"></div>
+        <div class="form-row">
+          <div class="form-group"><label>السنة <span class="req">*</span></label><select id="salaryYear" onchange="updateMonthStatus();buildRepeatGrid()"></select></div>
+          <div class="form-group"><label>الشهر <span class="req">*</span></label>
+            <select id="salaryMonth" onchange="updateMonthStatus();buildRepeatGrid()">
+              <option value="1">يناير</option><option value="2">فبراير</option><option value="3">مارس</option>
+              <option value="4">أبريل</option><option value="5">مايو</option><option value="6">يونيو</option>
+              <option value="7">يوليو</option><option value="8">أغسطس</option><option value="9">سبتمبر</option>
+              <option value="10">أكتوبر</option><option value="11">نوفمبر</option><option value="12">ديسمبر</option>
+            </select>
+          </div>
+        </div>
+        <div id="monthStatusMsg"></div>
+        <div class="form-group"><label>المبلغ (ر.س) <span class="req">*</span></label>
+          <div class="amount-wrap"><span class="amount-sfx">ر.س</span><input type="number" id="salaryAmount" placeholder="0" oninput="updateSalDisplay()"></div>
+        </div>
+        <div id="salDisplayEl"></div>
+        <div class="form-group"><label>تاريخ الدفع <span class="req">*</span></label><input type="date" id="salaryDate"></div>
+        <div class="form-group"><label>طريقة الدفع</label>
+          <div class="radio-toggle">
+            <label class="lbl-cash sel" id="lbl-cash" onclick="setPayMethod('cash')"><input type="radio" name="pm" value="cash" checked><span>💵 كاش</span></label>
+            <label class="lbl-transfer" id="lbl-transfer" onclick="setPayMethod('transfer')"><input type="radio" name="pm" value="transfer"><span>🏦 تحويل</span></label>
+          </div>
+        </div>
+        <div id="transferFields" style="display:none;" class="transfer-box">
+          <div class="form-row">
+            <div class="form-group"><label>المستفيد</label>
+              <div style="display:flex;gap:5px;"><select id="transferTo" style="flex:1;"></select><button class="btn btn-outline btn-sm" onclick="openManageBenModal()">⚙️</button></div>
+            </div>
+            <div class="form-group"><label>البنك</label>
+              <div style="display:flex;gap:5px;"><select id="transferBank" style="flex:1;"></select><button class="btn btn-outline btn-sm" onclick="openManageBanksModal()">⚙️</button></div>
+            </div>
+          </div>
+          <div class="form-group"><label>مبلغ الحوالة (ر.س)</label>
+            <div class="amount-wrap"><span class="amount-sfx">ر.س</span><input type="number" id="transferAmount" placeholder="0"></div>
+          </div>
+        </div>
+        <div class="repeat-box" style="margin-top:10px;">
+          <div style="font-weight:700;color:var(--blue);font-size:12px;margin-bottom:7px;">🔁 تكرار لأشهر إضافية</div>
+          <div class="rm-grid" id="repeatGrid"></div>
+        </div>
+        <div class="form-group" style="margin-top:12px;"><label>ملاحظات</label><textarea id="salaryNotes" rows="2" placeholder="ملاحظات..."></textarea></div>
+        <button class="btn btn-gold" style="width:100%;justify-content:center;padding:13px;margin-top:4px;" onclick="saveSalary()">💾 تسجيل الراتب</button>
+      </div>
+      <div class="card"><div class="card-title">📜 سجل الموظف</div><div id="empSalaryHistory"></div></div>
+    </div>
+  </div>
+  <div id="noEmpSelected" class="empty"><div class="ei">👆</div><p>اختر موظفاً من الأعلى</p></div>
+</div>
+ 
+<!-- LOANS -->
+<div class="page" id="page-loans">
+  <div class="sec-title"><div class="ib">📋</div><div><h2>إدارة السلف</h2><p>تسجيل ومتابعة</p></div></div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">➕ تسجيل سلفة</div>
+      <div class="form-group"><label>الموظف <span class="req">*</span></label><select id="loanEmp"><option value="">-- اختر --</option></select></div>
+      <div class="form-row">
+        <div class="form-group"><label>المبلغ (ر.س) <span class="req">*</span></label>
+          <div class="amount-wrap"><span class="amount-sfx">ر.س</span><input type="number" id="loanAmount" placeholder="0"></div>
+        </div>
+        <div class="form-group"><label>التاريخ <span class="req">*</span></label><input type="date" id="loanDate"></div>
+      </div>
+      <div class="form-group"><label>ملاحظات</label><textarea id="loanNotes" rows="2" placeholder="سبب السلفة..."></textarea></div>
+      <button class="btn btn-gold" onclick="saveLoan()" style="width:100%;justify-content:center;">💾 تسجيل السلفة</button>
+      <hr class="div">
+      <div class="card-title">✅ تسجيل سداد</div>
+      <div class="form-group"><label>اختر السلفة</label><select id="repayLoanSelect"><option value="">-- اختر --</option></select></div>
+      <div class="form-row">
+        <div class="form-group"><label>نوع السداد</label><select id="repayType"><option value="full">سداد كامل</option><option value="partial">سداد جزئي</option></select></div>
+        <div class="form-group"><label>المبلغ (ر.س)</label>
+          <div class="amount-wrap"><span class="amount-sfx">ر.س</span><input type="number" id="repayAmount" placeholder="0"></div>
+        </div>
+      </div>
+      <div class="form-group"><label>تاريخ السداد</label><input type="date" id="repayDate"></div>
+      <button class="btn btn-green" onclick="repayLoan()" style="width:100%;justify-content:center;">✅ تسجيل السداد</button>
+    </div>
+    <div class="card">
+      <div class="card-title">📋 قائمة السلف</div>
+      <div id="loanSummaryBar" style="margin-bottom:14px;"></div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:rgba(232,148,74,.4);border:1px solid var(--orange)"></div>قائمة</div>
+        <div class="legend-item"><div class="legend-dot" style="background:rgba(74,158,232,.3);border:1px solid var(--blue)"></div>جزئي</div>
+        <div class="legend-item"><div class="legend-dot" style="background:rgba(76,175,125,.3);border:1px solid var(--green)"></div>مسددة</div>
+      </div>
+      <div class="table-wrap"><table><thead><tr>
+        <th>الموظف</th><th>المبلغ</th><th>المسدد</th><th>المتبقي</th><th>التاريخ</th><th>الحالة</th>
+      </tr></thead><tbody id="loansTable"></tbody></table></div>
+    </div>
+  </div>
+</div>
+ 
+<!-- REPORTS -->
+<div class="page" id="page-reports">
+  <div class="sec-title"><div class="ib">📊</div><div><h2>التقارير</h2><p>تفاصيل الرواتب</p></div></div>
+  <div class="card" style="margin-bottom:18px;">
+    <div class="card-title">📅 تصفية</div>
+    <div class="year-tabs" id="reportYearTabs"></div>
+    <div class="form-row">
+      <div class="form-group"><label>الموظف</label>
+        <select id="reportEmpFilter" onchange="renderReports()"><option value="">كل الموظفين</option></select>
+      </div>
+      <div class="form-group" style="display:flex;align-items:flex-end;gap:8px;">
+        <button class="btn btn-outline btn-sm" onclick="window.print()">🖨️ طباعة</button>
+        <button class="btn btn-outline btn-sm" onclick="exportCSV()">📥 Excel</button>
+      </div>
+    </div>
+  </div>
+  <div class="stats-row" id="reportStats"></div>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:rgba(224,92,92,.3);border:1px solid var(--red)"></div>متأخر</div>
+    <div class="legend-item"><div class="legend-dot" style="background:rgba(232,148,74,.3);border:1px solid var(--orange)"></div>سلفة</div>
+    <div class="legend-item"><div class="legend-dot" style="background:rgba(107,122,141,.3);border:1px solid var(--gray)"></div>إجازة</div>
+  </div>
+  <div class="card" style="margin-bottom:18px;">
+    <div class="card-title">📋 تفاصيل الرواتب</div>
+    <div class="table-wrap"><table><thead><tr>
+      <th>الموظف</th><th>المسمى</th><th>الشهر</th><th>المقرر</th><th>المدفوع</th><th>التاريخ</th><th>الطريقة</th><th>السلفة</th><th>الحالة</th><th>ملاحظات</th>
+    </tr></thead><tbody id="reportTableBody"></tbody></table></div>
+  </div>
+  <div class="card">
+    <div class="card-title">👥 ملخص الموظفين</div>
+    <div class="table-wrap"><table><thead><tr>
+      <th>الموظف</th><th>المسمى</th><th>الراتب</th><th>الحالة</th><th>آخر راتب</th><th>إجمالي المدفوع</th><th>السلفة</th>
+    </tr></thead><tbody id="allEmpSummary"></tbody></table></div>
+  </div>
+</div>
+ 
+<!-- CHARTS -->
+<div class="page" id="page-charts">
+  <div class="sec-title"><div class="ib">📈</div><div><h2>الرسوم البيانية</h2><p>تحليل بصري</p></div></div>
+  <div class="stats-row" id="chartStats"></div>
+  <div class="grid-2" style="margin-bottom:18px;">
+    <div class="chart-box"><canvas id="monthlyChart"></canvas></div>
+    <div class="chart-box"><canvas id="delayChart"></canvas></div>
+  </div>
+  <div class="grid-2">
+    <div class="chart-box"><canvas id="empShareChart"></canvas></div>
+    <div class="chart-box"><canvas id="transferChart"></canvas></div>
+  </div>
+</div>
+ 
+</div><!-- end main -->
+</div><!-- end appContent -->
+ 
+<!-- MODAL -->
+<div id="modalOverlay" class="modal-overlay" style="display:none;" onclick="if(event.target===this)closeModal()">
+  <div class="modal"><button class="modal-close" onclick="closeModal()">✕</button><div id="modalContent"></div></div>
+</div>
+<div id="toast"></div>
+ 
+<script>
+// ============================================================
+// DATA
+// ============================================================
+const MONTHS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+ 
+// DB is initialized in the module above and shared via window
+// We use a proxy to keep window.DB in sync
+let DB = window.DB || { employees:[], salaries:[], loans:[], banks:[], beneficiaries:[], customRoles:[], nextEmpId:1, nextSalId:1, nextLoanId:1 };
+ 
+function syncDB() { window.DB = DB; }
+ 
+let selectedEmpId = null;
+let currentPayMethod = 'cash';
+let empStatusCurrent = 'active';
+let selectedReportYear = new Date().getFullYear();
+let charts = {};
+let appReady = false;
+ 
+// ============================================================
+// SAVE / LOAD
+// ============================================================
+function save() {
+  syncDB();
+  showSyncAnim();
+  if (typeof window.fbSave === 'function') {
+    window.fbSave();
+  } else {
+    try { localStorage.setItem('payroll_v2', JSON.stringify(DB)); } catch(e){}
+  }
+}
+ 
+function showSyncAnim() {
+  const bar = document.getElementById('syncBar');
+  bar.className = 'syncing';
+  setTimeout(() => { bar.className = 'done'; }, 800);
+  setTimeout(() => { bar.className = ''; }, 1600);
+}
+ 
+function manualSave() {
+  save();
+  showToast('💾 تم الحفظ ✅');
+}
+ 
+// ============================================================
+// UTILS
+// ============================================================
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = type==='error' ? 'rgba(224,92,92,.9)' : 'rgba(13,27,42,.97)';
+  t.style.borderColor = type==='error' ? 'var(--red)' : type==='warn' ? 'var(--orange)' : 'var(--gold)';
+  t.style.color = type==='error' ? 'var(--red-soft)' : type==='warn' ? 'var(--orange)' : 'var(--gold-light)';
+  t.style.display = 'block';
+  setTimeout(() => { t.style.display='none'; }, 3000);
+}
+window.showToast = showToast;
+ 
+function fmt(n) { return Number(n||0).toLocaleString('ar-SA'); }
+function today() { return new Date().toISOString().split('T')[0]; }
+function cy() { return new Date().getFullYear(); }
+function cm() { return new Date().getMonth()+1; }
+function getEmp(id) { return DB.employees.find(e=>e.id==id); }
+ 
+function getEmpEmoji(role) {
+  const m = {'سائق':'🚗','خادمة':'🧺','طباخ':'👨‍🍳','حارس أمن':'💂','حارس':'💂','سكرتير':'🗂️','عامل نظافة':'🧹','مشرف':'📋','موظف إداري':'🖥️','راعي':'🐄','زوجة':'👩','مربية':'👶'};
+  return m[role]||'👤';
+}
+ 
+function getEmpLoanBal(empId) {
+  return DB.loans.filter(l=>l.empId==empId&&l.status!=='paid').reduce((s,l)=>s+(l.amount-(l.repaid||0)),0);
+}
+ 
+function getLastSalary(empId) {
+  return [...DB.salaries.filter(s=>s.empId==empId)].sort((a,b)=>b.year-a.year||b.month-a.month)[0]||null;
+}
+ 
+function isLate(empId) {
+  const emp=getEmp(empId); if(!emp||emp.status==='leave') return false;
+  return !DB.salaries.find(s=>s.empId==empId&&s.month==cm()&&s.year==cy()&&s.paid);
+}
+ 
+// ============================================================
+// LOGIN
+// ============================================================
+function doLogin() {
+  const email = document.getElementById('emailInput').value.trim().toLowerCase();
+  const allowed = (window.ALLOWED_EMAILS||[]).map(e=>e.toLowerCase());
+  if (allowed.includes(email)) {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('appContent').style.display = 'block';
+    initApp();
+  } else {
+    const e = document.getElementById('loginErr');
+    e.style.display = 'flex';
+    setTimeout(()=>{e.style.display='none';},3000);
+    document.getElementById('emailInput').select();
+  }
+}
+ 
+// ============================================================
+// INIT
+// ============================================================
+function initApp() {
+  // Load from localStorage as fallback
+  try { const d=localStorage.getItem('payroll_v2'); if(d){const p=JSON.parse(d);DB={...DB,...p};} } catch(e){}
+  initDefaults();
+  refreshRoleSelect('');
+  refreshTransferDropdowns();
+  updateDate();
+  renderDashboard();
+  updateSyncBadge();
+  appReady = true;
+  window.appReady = true;
+  setInterval(updateDate,60000);
+  setInterval(()=>{ if(window.fbConfigured_ref&&window.fbConfigured_ref()) updateSyncBadge(); },5000);
+  document.getElementById('emailInput').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+}
+ 
+function initDefaults() {
+  if(!DB.employees) DB.employees=[];
+  if(!DB.salaries) DB.salaries=[];
+  if(!DB.loans) DB.loans=[];
+  if(!DB.customRoles) DB.customRoles=[];
+  if(!DB.beneficiaries) DB.beneficiaries=['زوجته','ابنه','ابنته','أخوه','والده','والدته'];
+  if(!DB.banks) DB.banks=['الراجحي','الأهلي','الرياض','سامبا','البلاد','الإنماء','ساب','الجزيرة'];
+  if(!DB.nextEmpId) DB.nextEmpId=1;
+  if(!DB.nextSalId) DB.nextSalId=1;
+  if(!DB.nextLoanId) DB.nextLoanId=1;
+}
+ 
+function updateSyncBadge() {
+  const badge = document.getElementById('syncStatusBadge');
+  const txt = document.getElementById('syncStatusText');
+  if(!badge||!txt) return;
+  const live = window.fbConfigured_ref && window.fbConfigured_ref();
+  badge.className = 'sync-status ' + (live?'live':'local');
+  txt.textContent = live ? '🔥 مزامنة تلقائية' : '💾 محلي';
+}
+ 
+function refreshAllViews() {
+  const active = document.querySelector('.page.active');
+  if(!active) return;
+  const id = active.id.replace('page-','');
+  if(id==='dashboard') renderDashboard();
+  else if(id==='employees') renderEmployeeList();
+  else if(id==='salary') renderEmpSelector();
+  else if(id==='loans') { renderLoansList(); populateLoanSelects(); }
+  else if(id==='reports') renderReports();
+  else if(id==='charts') renderCharts();
+}
+ 
+// ============================================================
+// NAVIGATION
+// ============================================================
+function showPage(page) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  document.getElementById('tab-'+page).classList.add('active');
+  if(page==='dashboard') renderDashboard();
+  if(page==='employees') renderEmployeeList();
+  if(page==='salary') renderEmpSelector();
+  if(page==='loans') { renderLoansList(); populateLoanSelects(); }
+  if(page==='reports') renderReports();
+  if(page==='charts') renderCharts();
+}
+ 
+function updateDate() {
+  const el=document.getElementById('currentDate');
+  if(el) el.innerHTML=`<strong style="color:var(--gold-light)">${new Date().toLocaleDateString('ar-SA',{weekday:'short',year:'numeric',month:'short',day:'numeric'})}</strong>`;
+}
+ 
+// ============================================================
+// EMPLOYEES
+// ============================================================
+function setEmpStatus(s) {
+  empStatusCurrent=s;
+  document.getElementById('lbl-active').className='lbl-active'+(s==='active'?' sel':'');
+  document.getElementById('lbl-leave').className='lbl-leave'+(s==='leave'?' sel':'');
+}
+ 
+function refreshRoleSelect(val) {
+  const builtIn=['سائق','خادمة','سكرتير','حارس أمن','عامل نظافة','طباخ','حارس','مشرف','موظف إداري','راعي','زوجة','مربية'];
+  const all=[...builtIn,...(DB.customRoles||[]).filter(r=>!builtIn.includes(r))];
+  const sel=document.getElementById('empRole'); if(!sel) return;
+  const prev=val||sel.value;
+  sel.innerHTML='<option value="">-- اختر المسمى --</option>'+all.map(r=>`<option value="${r}" ${r===prev?'selected':''}>${getEmpEmoji(r)} ${r}</option>`).join('');
+}
+ 
+function addNewRole() {
+  const v=document.getElementById('newRoleInput').value.trim(); if(!v) return;
+  if(!DB.customRoles) DB.customRoles=[];
+  if(!DB.customRoles.includes(v)){ DB.customRoles.push(v); save(); }
+  refreshRoleSelect(v);
+  document.getElementById('newRoleInput').value='';
+  showToast('✅ تم إضافة المسمى');
+}
+ 
+function saveEmployee() {
+  const name=document.getElementById('empName').value.trim();
+  const role=document.getElementById('empRole').value;
+  const salary=parseFloat(document.getElementById('empSalary').value);
+  const start=document.getElementById('empStartDate').value;
+  const notes=document.getElementById('empNotes').value.trim();
+  const editId=document.getElementById('editEmpId').value;
+  if(!name){showToast('أدخل اسم الموظف','error');return;}
+  if(!role){showToast('اختر المسمى','error');return;}
+  if(!salary||salary<=0){showToast('أدخل راتباً صحيحاً','error');return;}
+  if(editId){
+    const emp=getEmp(parseInt(editId));
+    if(emp){Object.assign(emp,{name,role,salary,startDate:start,notes,status:empStatusCurrent});}
+    showToast('✅ تم تحديث الموظف');
+  } else {
+    DB.employees.push({id:DB.nextEmpId++,name,role,salary,startDate:start||today(),notes,status:empStatusCurrent});
+    showToast('✅ تم إضافة الموظف');
+  }
+  save(); clearEmpForm(); renderEmployeeList();
+}
+ 
+function clearEmpForm() {
+  ['empName','empSalary','empStartDate','empNotes','editEmpId'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('empRole').value='';
+  document.getElementById('empFormTitle').textContent='➕ إضافة موظف';
+  setEmpStatus('active');
+}
+ 
+function editEmployee(id) {
+  const emp=getEmp(id); if(!emp) return;
+  document.getElementById('editEmpId').value=emp.id;
+  document.getElementById('empName').value=emp.name;
+  document.getElementById('empRole').value=emp.role;
+  document.getElementById('empSalary').value=emp.salary;
+  document.getElementById('empStartDate').value=emp.startDate||'';
+  document.getElementById('empNotes').value=emp.notes||'';
+  document.getElementById('empFormTitle').textContent='✏️ تعديل: '+emp.name;
+  setEmpStatus(emp.status||'active');
+  document.getElementById('empName').scrollIntoView({behavior:'smooth'});
+}
+ 
+function deleteEmployee(id) {
+  const emp=getEmp(id); if(!emp) return;
+  openModal(`<div class="modal-title" style="color:var(--red-soft);">🗑️ تأكيد الحذف</div>
+    <div style="text-align:center;padding:10px 0 16px;">
+      <div style="font-size:44px;margin-bottom:10px;">${getEmpEmoji(emp.role)}</div>
+      <div style="font-size:17px;font-weight:800;color:var(--white);margin-bottom:6px;">${emp.name}</div>
+      <div style="font-size:12px;color:var(--white-dim);margin-bottom:16px;">${emp.role} • ${fmt(emp.salary)} ر.س</div>
+    </div>
+    <div class="alert alert-err">⚠️ سيتم حذف الموظف وجميع سجلاته نهائياً ولا يمكن التراجع!</div>
+    <div style="display:flex;gap:8px;margin-top:14px;">
+      <button class="btn btn-red" style="flex:1;justify-content:center;" onclick="confirmDeleteEmp(${id})">🗑️ نعم احذف</button>
+      <button class="btn btn-outline" style="flex:1;justify-content:center;" onclick="closeModal()">↩️ تراجع</button>
+    </div>`);
+}
+ 
+function confirmDeleteEmp(id) {
+  DB.employees=DB.employees.filter(e=>e.id!==id);
+  DB.salaries=DB.salaries.filter(s=>s.empId!==id);
+  DB.loans=DB.loans.filter(l=>l.empId!==id);
+  save(); closeModal(); renderEmployeeList(); showToast('🗑️ تم الحذف');
+}
+ 
+function toggleLeave(id) {
+  const emp=getEmp(id); if(!emp) return;
+  emp.status=emp.status==='active'?'leave':'active';
+  save(); renderEmployeeList();
+  showToast(emp.status==='leave'?'🌴 تم تعيينه في إجازة':'✅ تم إعادته لرأس العمل');
+}
+ 
+function renderEmployeeList() {
+  const c=document.getElementById('empListCards');
+  document.getElementById('empCount').textContent=DB.employees.length;
+  if(!DB.employees.length){c.innerHTML='<div class="empty"><div class="ei">👤</div><p>لا يوجد موظفون</p></div>';return;}
+  c.innerHTML=DB.employees.map(emp=>{
+    const lb=getEmpLoanBal(emp.id),isL=emp.status==='leave';
+    return `<div style="background:var(--navy-mid);border:1.5px solid rgba(201,168,76,${isL?'.1':'.2'});border-radius:11px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;opacity:${isL?.75:1}">
+      <div style="width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,var(--gold-dark),var(--navy-card));display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">${getEmpEmoji(emp.role)}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:700;font-size:13px;">${emp.name}</div>
+        <div style="font-size:11px;color:var(--white-dim);">${emp.role} • ${fmt(emp.salary)} ر.س</div>
+        <div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap;">
+          <span class="badge ${isL?'badge-leave':'badge-active'}">${isL?'🌴 إجازة':'✅ نشط'}</span>
+          ${lb>0?`<span class="badge badge-loan">سلفة: ${fmt(lb)}</span>`:''}
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;">
+        <button class="btn btn-outline btn-sm" onclick="editEmployee(${emp.id})">✏️</button>
+        <button class="btn btn-sm" style="background:rgba(107,122,141,.18);border:1px solid var(--gray);color:var(--gray);" onclick="toggleLeave(${emp.id})">${isL?'▶️':'🌴'}</button>
+        <button class="btn btn-red btn-sm" onclick="deleteEmployee(${emp.id})">🗑️</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+ 
+// ============================================================
+// ROLES MODAL
+// ============================================================
+function openManageRolesModal() {
+  if(!DB.customRoles) DB.customRoles=[];
+  openModal(`<div class="modal-title">⚙️ إدارة المسميات</div>
+    <div id="rolesModalList"></div><hr class="div">
+    <div style="display:flex;gap:7px;">
+      <input type="text" id="newRoleModal" placeholder="مسمى جديد..." style="flex:1;">
+      <button class="btn btn-gold btn-sm" onclick="addRoleFromModal()">➕</button>
+    </div>`);
+  renderRolesModalList();
+}
+ 
+function renderRolesModalList() {
+  const builtIn=['سائق','خادمة','سكرتير','حارس أمن','عامل نظافة','طباخ','حارس','مشرف','موظف إداري','راعي','زوجة','مربية'];
+  const custom=(DB.customRoles||[]).filter(r=>!builtIn.includes(r));
+  const el=document.getElementById('rolesModalList');if(!el)return;
+  if(!custom.length){el.innerHTML='<p style="color:var(--white-dim);font-size:12px;text-align:center;padding:10px;">لا توجد مسميات مضافة</p>';return;}
+  el.innerHTML=custom.map((r,i)=>`<div style="display:flex;align-items:center;gap:7px;padding:6px 0;border-bottom:1px solid rgba(201,168,76,.07);">
+    <span style="font-size:16px;">${getEmpEmoji(r)}</span>
+    <input type="text" value="${r}" id="re_${i}" style="flex:1;padding:5px 9px;font-size:12px;">
+    <button class="btn btn-outline btn-sm" onclick="saveRoleEdit(${i},'${r}')">💾</button>
+    <button class="btn btn-red btn-sm" onclick="confirmDeleteRole('${r}')">🗑️</button>
+  </div>`).join('');
+}
+ 
+function saveRoleEdit(i,old) {
+  const v=document.getElementById('re_'+i)?.value?.trim();if(!v)return;
+  const idx=DB.customRoles.indexOf(old);if(idx>=0){DB.customRoles[idx]=v;DB.employees.forEach(e=>{if(e.role===old)e.role=v;});}
+  save();refreshRoleSelect(v);renderRolesModalList();showToast('✅ تم التعديل');
+}
+ 
+function addRoleFromModal() {
+  const v=document.getElementById('newRoleModal')?.value?.trim();if(!v)return;
+  if(!DB.customRoles.includes(v)){DB.customRoles.push(v);save();}
+  refreshRoleSelect(v);document.getElementById('newRoleModal').value='';renderRolesModalList();showToast('✅ تمت الإضافة');
+}
+ 
+function confirmDeleteRole(name) {
+  openModal(`<div class="modal-title" style="color:var(--red-soft);">🗑️ حذف المسمى</div>
+    <p style="margin-bottom:14px;">هل تريد حذف <strong style="color:var(--gold-light)">"${name}"</strong>؟</p>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-red" style="flex:1;justify-content:center;" onclick="doDeleteRole('${name}')">🗑️ احذف</button>
+      <button class="btn btn-outline" style="flex:1;justify-content:center;" onclick="openManageRolesModal()">↩️ تراجع</button>
+    </div>`);
+}
+ 
+function doDeleteRole(name) {
+  DB.customRoles=DB.customRoles.filter(r=>r!==name);save();refreshRoleSelect('');closeModal();showToast('تم الحذف');
+}
+ 
+// ============================================================
+// SALARY
+// ============================================================
+function setPayMethod(m) {
+  currentPayMethod=m;
+  document.getElementById('lbl-cash').className='lbl-cash'+(m==='cash'?' sel':'');
+  document.getElementById('lbl-transfer').className='lbl-transfer'+(m==='transfer'?' sel':'');
+  document.getElementById('transferFields').style.display=m==='transfer'?'block':'none';
+}
+ 
+function renderEmpSelector() {
+  const c=document.getElementById('empSelectorCards');
+  if(!DB.employees.length){c.innerHTML='<div class="empty" style="grid-column:1/-1;"><div class="ei">👤</div><p>أضف موظفين أولاً</p></div>';return;}
+  c.innerHTML=DB.employees.map(emp=>{
+    const isL=emp.status==='leave',lb=getEmpLoanBal(emp.id),late=isLate(emp.id);
+    return `<div class="emp-card-sel ${selectedEmpId==emp.id?'selected':''} ${isL?'on-leave':''}" onclick="selectSalEmp(${emp.id})" style="position:relative;">
+      ${late?'<div class="notif-dot"></div>':''}
+      <div class="emp-avatar">${getEmpEmoji(emp.role)}</div>
+      <div class="emp-card-name">${emp.name}</div>
+      <div class="emp-card-role">${emp.role}</div>
+      <span class="badge ${isL?'badge-leave':'badge-active'}">${isL?'🌴':'✅'} ${isL?'إجازة':'نشط'}</span>
+      ${lb>0?`<br><span class="badge badge-loan" style="margin-top:3px;">سلفة ${fmt(lb)}</span>`:''}
+    </div>`;
+  }).join('');
+}
+ 
+function selectSalEmp(id) {
+  selectedEmpId=id;
+  renderEmpSelector();
+  const emp=getEmp(id);
+  document.getElementById('salaryFormArea').style.display='block';
+  document.getElementById('noEmpSelected').style.display='none';
+  const lb=getEmpLoanBal(id);
+  document.getElementById('selectedEmpInfo').innerHTML=`<div style="background:rgba(201,168,76,.05);border:1px solid rgba(201,168,76,.18);border-radius:9px;padding:12px;">
+    <div style="display:flex;align-items:center;gap:9px;margin-bottom:${lb>0?'10px':'0'}">
+      <span style="font-size:26px;">${getEmpEmoji(emp.role)}</span>
+      <div><div style="font-weight:800;font-size:15px;color:var(--gold-light);">${emp.name}</div>
+      <div style="font-size:12px;color:var(--white-dim);">${emp.role} • الراتب: <strong style="color:var(--gold-light)">${fmt(emp.salary)} ر.س</strong></div></div>
+    </div>
+    ${lb>0?`<div style="background:rgba(232,148,74,.13);border:1.5px solid var(--orange);border-radius:7px;padding:9px 12px;display:flex;justify-content:space-between;align-items:center;">
+      <span style="font-size:12px;color:var(--orange);font-weight:600;">⚠️ سلفة متبقية</span>
+      <span style="font-size:19px;font-weight:900;color:var(--orange);">- ${fmt(lb)} ر.س</span>
+    </div>`:'<div style="font-size:11px;color:var(--green-soft);">✅ لا توجد سلف</div>'}
+  </div>`;
+  document.getElementById('salaryAmount').value=emp.salary;
+  updateSalDisplay();
+  const yearSel=document.getElementById('salaryYear');
+  const cyear=cy();
+  yearSel.innerHTML='';
+  for(let y=cyear-2;y<=cyear+1;y++) yearSel.innerHTML+=`<option value="${y}" ${y==cyear?'selected':''}>${y}</option>`;
+  document.getElementById('salaryMonth').value=cm();
+  document.getElementById('salaryDate').value=today();
+  updateMonthStatus();
+  buildRepeatGrid();
+  refreshTransferDropdowns();
+  renderEmpSalHistory(id);
+}
+ 
+function updateSalDisplay() {
+  const v=parseFloat(document.getElementById('salaryAmount').value)||0;
+  document.getElementById('salDisplayEl').innerHTML=v>0?`<div class="sal-display">${fmt(v)}<small>ريال سعودي</small></div>`:'';
+}
+ 
+function updateMonthStatus() {
+  const m=parseInt(document.getElementById('salaryMonth').value);
+  const y=parseInt(document.getElementById('salaryYear').value);
+  if(!selectedEmpId)return;
+  const ex=DB.salaries.find(s=>s.empId==selectedEmpId&&s.month==m&&s.year==y);
+  document.getElementById('monthStatusMsg').innerHTML=ex?`<div class="alert alert-warn">⚠️ يوجد راتب مسجل لهذا الشهر بتاريخ ${ex.date} — سيتم إضافة دفعة جديدة.</div>`:'';
+}
+ 
+function buildRepeatGrid() {
+  const g=document.getElementById('repeatGrid');if(!g)return;
+  const cur=parseInt(document.getElementById('salaryMonth')?.value)||cm();
+  g.innerHTML=MONTHS.map((m,i)=>{const mn=i+1,isCur=mn===cur;
+    return `<button class="rm-btn ${isCur?'current':''}" id="rmb_${mn}" ${isCur?'disabled':''} onclick="toggleRM(${mn})" type="button">${m.substring(0,3)}</button>`;
+  }).join('');
+}
+ 
+function toggleRM(mn) {
+  const b=document.getElementById('rmb_'+mn);if(!b||b.disabled)return;
+  b.classList.toggle('active');
+}
+ 
+function saveSalary() {
+  if(!selectedEmpId){showToast('اختر موظفاً أولاً','error');return;}
+  const amount=parseFloat(document.getElementById('salaryAmount').value);
+  const month=parseInt(document.getElementById('salaryMonth').value);
+  const year=parseInt(document.getElementById('salaryYear').value);
+  const date=document.getElementById('salaryDate').value;
+  const notes=document.getElementById('salaryNotes').value.trim();
+  const tTo=document.getElementById('transferTo').value;
+  const tBank=document.getElementById('transferBank').value;
+  const tAmt=parseFloat(document.getElementById('transferAmount').value)||0;
+  if(!amount||amount<=0){showToast('أدخل مبلغاً صحيحاً','error');return;}
+  if(!date){showToast('اختر تاريخ الدفع','error');return;}
+  const extras=[];
+  document.querySelectorAll('.rm-btn.active').forEach(b=>{ const m=parseInt(b.id.replace('rmb_',''));if(m!==month)extras.push(m); });
+  const allMonths=[month,...extras];
+  allMonths.forEach(m=>{
+    DB.salaries.push({id:DB.nextSalId++,empId:selectedEmpId,amount,month:m,year,date,notes,method:currentPayMethod,
+      transferTo:currentPayMethod==='transfer'?tTo:'',transferBank:currentPayMethod==='transfer'?tBank:'',
+      transferAmount:currentPayMethod==='transfer'?tAmt:0,paid:true});
+  });
+  save();
+  showToast(`✅ تم تسجيل الراتب في ${allMonths.length} شهر`);
+  renderEmpSalHistory(selectedEmpId);renderEmpSelector();updateMonthStatus();buildRepeatGrid();
+  document.getElementById('salaryNotes').value='';document.getElementById('transferAmount').value='';
+}
+ 
+function deleteSalary(id) {
+  const s=DB.salaries.find(r=>r.id===id);if(!s)return;
+  const emp=getEmp(s.empId);
+  openModal(`<div class="modal-title" style="color:var(--red-soft);">🗑️ حذف سجل الراتب</div>
+    <div style="background:rgba(224,92,92,.07);border:1px solid rgba(224,92,92,.2);border-radius:9px;padding:12px;margin-bottom:14px;">
+      <div style="font-weight:700;font-size:13px;margin-bottom:4px;">${emp?.name||''} — ${MONTHS[s.month-1]} ${s.year}</div>
+      <div style="font-size:12px;color:var(--white-dim);">المبلغ: <strong style="color:var(--green-soft)">${fmt(s.amount)} ر.س</strong> • ${s.date}</div>
+    </div>
+    <div class="alert alert-err">⚠️ سيتم حذفه نهائياً ولا يمكن التراجع.</div>
+    <div style="display:flex;gap:8px;margin-top:14px;">
+      <button class="btn btn-red" style="flex:1;justify-content:center;" onclick="confirmDeleteSal(${id})">🗑️ احذف</button>
+      <button class="btn btn-outline" style="flex:1;justify-content:center;" onclick="closeModal()">↩️ تراجع</button>
+    </div>`);
+}
+ 
+function confirmDeleteSal(id) {
+  DB.salaries=DB.salaries.filter(s=>s.id!==id);save();closeModal();
+  if(selectedEmpId)renderEmpSalHistory(selectedEmpId);showToast('تم الحذف');
+}
+ 
+function renderEmpSalHistory(empId) {
+  const sals=[...DB.salaries.filter(s=>s.empId==empId)].sort((a,b)=>b.year-a.year||b.month-a.month);
+  const c=document.getElementById('empSalaryHistory');
+  if(!sals.length){c.innerHTML='<div class="empty"><div class="ei">📭</div><p>لا يوجد سجل</p></div>';return;}
+  c.innerHTML=`<div class="table-wrap"><table><thead><tr><th>الشهر</th><th>المبلغ</th><th>التاريخ</th><th>الطريقة</th><th></th></tr></thead><tbody>
+    ${sals.map(s=>`<tr><td>${MONTHS[s.month-1]} ${s.year}</td>
+      <td style="color:var(--green-soft);font-weight:700;">${fmt(s.amount)}</td>
+      <td style="font-size:11px;">${s.date}</td>
+      <td>${s.method==='cash'?'💵':(`🏦 ${s.transferBank||''}`)}</td>
+      <td><button class="btn btn-red btn-sm" onclick="deleteSalary(${s.id})">🗑️</button></td>
+    </tr>`).join('')}
+  </tbody></table></div>`;
+}
+ 
+// ============================================================
+// BENEFICIARIES & BANKS
+// ============================================================
+function refreshTransferDropdowns() {
+  const toSel=document.getElementById('transferTo');
+  const bkSel=document.getElementById('transferBank');
+  if(toSel){ const p=toSel.value;toSel.innerHTML='<option value="">-- اختر --</option>'+(DB.beneficiaries||[]).map(b=>`<option ${b===p?'selected':''}>${b}</option>`).join('');  }
+  if(bkSel){ const p=bkSel.value;bkSel.innerHTML='<option value="">-- اختر --</option>'+(DB.banks||[]).map(b=>`<option ${b===p?'selected':''}>${b}</option>`).join(''); }
+}
+ 
+function openManageBenModal() {
+  openModal(`<div class="modal-title">👤 المستفيدون</div><div id="benList"></div><hr class="div">
+    <div style="display:flex;gap:7px;"><input type="text" id="newBen" placeholder="مستفيد جديد..." style="flex:1;"><button class="btn btn-gold btn-sm" onclick="addBen()">➕</button></div>`);
+  renderBenList();
+}
+ 
+function renderBenList() {
+  const el=document.getElementById('benList');if(!el)return;
+  el.innerHTML=(DB.beneficiaries||[]).map((b,i)=>`<div style="display:flex;gap:7px;align-items:center;padding:6px 0;border-bottom:1px solid rgba(201,168,76,.07);">
+    <input type="text" value="${b}" id="ben_${i}" style="flex:1;padding:5px 9px;font-size:12px;">
+    <button class="btn btn-outline btn-sm" onclick="saveBen(${i})">💾</button>
+    <button class="btn btn-red btn-sm" onclick="confirmDelBen('${b}')">🗑️</button>
+  </div>`).join('');
+}
+ 
+function saveBen(i){const v=document.getElementById('ben_'+i)?.value?.trim();if(!v)return;DB.beneficiaries[i]=v;save();refreshTransferDropdowns();renderBenList();showToast('✅');}
+function addBen(){const v=document.getElementById('newBen')?.value?.trim();if(!v)return;DB.beneficiaries.push(v);save();refreshTransferDropdowns();document.getElementById('newBen').value='';renderBenList();showToast('✅');}
+function confirmDelBen(n){openModal(`<div class="modal-title" style="color:var(--red-soft);">🗑️ حذف المستفيد</div><p style="margin-bottom:14px;">حذف <strong>"${n}"</strong>؟</p><div style="display:flex;gap:8px;"><button class="btn btn-red" style="flex:1;justify-content:center;" onclick="delBen('${n}')">🗑️</button><button class="btn btn-outline" style="flex:1;justify-content:center;" onclick="openManageBenModal()">↩️</button></div>`);}
+function delBen(n){DB.beneficiaries=DB.beneficiaries.filter(b=>b!==n);save();refreshTransferDropdowns();closeModal();showToast('تم');}
+ 
+function openManageBanksModal() {
+  openModal(`<div class="modal-title">🏦 البنوك</div><div id="bankList"></div><hr class="div">
+    <div style="display:flex;gap:7px;"><input type="text" id="newBank" placeholder="بنك جديد..." style="flex:1;"><button class="btn btn-gold btn-sm" onclick="addBank()">➕</button></div>`);
+  renderBankList();
+}
+ 
+function renderBankList() {
+  const el=document.getElementById('bankList');if(!el)return;
+  el.innerHTML=(DB.banks||[]).map((b,i)=>`<div style="display:flex;gap:7px;align-items:center;padding:6px 0;border-bottom:1px solid rgba(201,168,76,.07);">
+    <input type="text" value="${b}" id="bank_${i}" style="flex:1;padding:5px 9px;font-size:12px;">
+    <button class="btn btn-outline btn-sm" onclick="saveBank(${i})">💾</button>
+    <button class="btn btn-red btn-sm" onclick="confirmDelBank('${b}')">🗑️</button>
+  </div>`).join('');
+}
+ 
+function saveBank(i){const v=document.getElementById('bank_'+i)?.value?.trim();if(!v)return;DB.banks[i]=v;save();refreshTransferDropdowns();renderBankList();showToast('✅');}
+function addBank(){const v=document.getElementById('newBank')?.value?.trim();if(!v)return;DB.banks.push(v);save();refreshTransferDropdowns();document.getElementById('newBank').value='';renderBankList();showToast('✅');}
+function confirmDelBank(n){openModal(`<div class="modal-title" style="color:var(--red-soft);">🗑️ حذف البنك</div><p style="margin-bottom:14px;">حذف <strong>"${n}"</strong>؟</p><div style="display:flex;gap:8px;"><button class="btn btn-red" style="flex:1;justify-content:center;" onclick="delBank('${n}')">🗑️</button><button class="btn btn-outline" style="flex:1;justify-content:center;" onclick="openManageBanksModal()">↩️</button></div>`);}
+function delBank(n){DB.banks=DB.banks.filter(b=>b!==n);save();refreshTransferDropdowns();closeModal();showToast('تم');}
+ 
+// ============================================================
+// LOANS
+// ============================================================
+function populateLoanSelects() {
+  const s=document.getElementById('loanEmp');if(s){s.innerHTML='<option value="">-- اختر --</option>'+DB.employees.map(e=>`<option value="${e.id}">${getEmpEmoji(e.role)} ${e.name}</option>`).join('');}
+  document.getElementById('loanDate').value=today();
+  const rs=document.getElementById('repayLoanSelect');if(rs){
+    rs.innerHTML='<option value="">-- اختر السلفة --</option>'+DB.loans.filter(l=>l.status!=='paid').map(l=>{
+      const emp=getEmp(l.empId),bal=l.amount-(l.repaid||0);
+      return `<option value="${l.id}">${emp?.name||''} - ${fmt(l.amount)} (متبقي: ${fmt(bal)})</option>`;
+    }).join('');
+  }
+  document.getElementById('repayDate').value=today();
+}
+ 
+function saveLoan() {
+  const empId=parseInt(document.getElementById('loanEmp').value);
+  const amount=parseFloat(document.getElementById('loanAmount').value);
+  const date=document.getElementById('loanDate').value;
+  const notes=document.getElementById('loanNotes').value.trim();
+  if(!empId){showToast('اختر موظفاً','error');return;}
+  if(!amount||amount<=0){showToast('أدخل مبلغاً','error');return;}
+  DB.loans.push({id:DB.nextLoanId++,empId,amount,date,notes,repaid:0,status:'pending'});
+  save();showToast('✅ تم تسجيل السلفة');
+  document.getElementById('loanAmount').value='';document.getElementById('loanNotes').value='';document.getElementById('loanEmp').value='';
+  renderLoansList();populateLoanSelects();
+}
+ 
+function repayLoan() {
+  const loanId=parseInt(document.getElementById('repayLoanSelect').value);
+  const type=document.getElementById('repayType').value;
+  const amount=parseFloat(document.getElementById('repayAmount').value);
+  const date=document.getElementById('repayDate').value;
+  if(!loanId){showToast('اختر السلفة','error');return;}
+  const loan=DB.loans.find(l=>l.id===loanId);if(!loan)return;
+  if(type==='full'){loan.repaid=loan.amount;loan.status='paid';loan.repayDate=date;}
+  else{if(!amount||amount<=0){showToast('أدخل مبلغاً','error');return;}loan.repaid=(loan.repaid||0)+amount;if(loan.repaid>=loan.amount){loan.repaid=loan.amount;loan.status='paid';}else loan.status='partial';loan.repayDate=date;}
+  save();showToast('✅ تم تسجيل السداد');renderLoansList();populateLoanSelects();document.getElementById('repayAmount').value='';
+}
+ 
+function renderLoansList() {
+  const total=DB.loans.filter(l=>l.status!=='paid').reduce((s,l)=>s+(l.amount-(l.repaid||0)),0);
+  const cnt=DB.loans.filter(l=>l.status!=='paid').length;
+  const all=DB.loans.reduce((s,l)=>s+l.amount,0);
+  const bar=document.getElementById('loanSummaryBar');
+  if(bar) bar.innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+    <div style="background:rgba(232,148,74,.1);border:1.5px solid rgba(232,148,74,.35);border-radius:10px;padding:12px;text-align:center;">
+      <div style="font-size:20px;font-weight:900;color:var(--orange);">${fmt(total)}</div>
+      <div style="font-size:10px;color:var(--white-dim);margin-top:2px;">💸 إجمالي المتبقي</div>
+    </div>
+    <div style="background:rgba(224,92,92,.08);border:1.5px solid rgba(224,92,92,.25);border-radius:10px;padding:12px;text-align:center;">
+      <div style="font-size:20px;font-weight:900;color:var(--red-soft);">${cnt}</div>
+      <div style="font-size:10px;color:var(--white-dim);margin-top:2px;">📋 سلف قائمة</div>
+    </div>
+    <div style="background:rgba(201,168,76,.07);border:1.5px solid rgba(201,168,76,.18);border-radius:10px;padding:12px;text-align:center;">
+      <div style="font-size:20px;font-weight:900;color:var(--gold-light);">${fmt(all)}</div>
+      <div style="font-size:10px;color:var(--white-dim);margin-top:2px;">📊 إجمالي كل الوقت</div>
+    </div>
+  </div>`;
+  const tbody=document.getElementById('loansTable');
+  if(!DB.loans.length){tbody.innerHTML='<tr><td colspan="6" style="text-align:center;padding:26px;color:var(--white-dim);">لا يوجد سلف</td></tr>';return;}
+  tbody.innerHTML=[...DB.loans].sort((a,b)=>new Date(b.date)-new Date(a.date)).map(l=>{
+    const emp=getEmp(l.empId),bal=l.amount-(l.repaid||0);
+    let rc='',badge='';
+    if(l.status==='paid'){badge=`<span class="badge badge-paid">مسددة ✅</span>`;}
+    else if(l.status==='partial'){rc='row-partial';badge=`<span class="badge badge-partial">جزئي 🔵</span>`;}
+    else{rc='row-loan';badge=`<span class="badge badge-loan">قائمة ⚠️</span>`;}
+    return `<tr class="${rc}">
+      <td style="font-weight:700;">${emp?getEmpEmoji(emp.role)+' '+emp.name:'-'}</td>
+      <td style="color:var(--red-soft);">-${fmt(l.amount)}</td>
+      <td style="color:var(--green-soft);">${fmt(l.repaid||0)}</td>
+      <td style="color:${bal>0?'var(--orange)':'var(--green-soft)'};font-weight:${bal>0?700:400};">${bal>0?'⚠️ ':''} ${fmt(bal)}</td>
+      <td style="font-size:11px;">${l.date}</td>
+      <td>${badge}</td>
+    </tr>`;
+  }).join('');
+}
+ 
+// ============================================================
+// DASHBOARD
+// ============================================================
+function renderDashboard() {
+  const total=DB.employees.length,active=DB.employees.filter(e=>e.status==='active').length;
+  const onLeave=DB.employees.filter(e=>e.status==='leave').length;
+  const lateC=DB.employees.filter(e=>isLate(e.id)).length;
+  const loans=DB.loans.filter(l=>l.status!=='paid').reduce((s,l)=>s+(l.amount-(l.repaid||0)),0);
+  const paid=DB.salaries.filter(s=>s.month==cm()&&s.year==cy()).reduce((s,r)=>s+r.amount,0);
+  document.getElementById('dashStats').innerHTML=`
+    <div class="stat-card gold"><div class="stat-icon">👥</div><div class="stat-value">${total}</div><div class="stat-label">إجمالي الموظفين</div></div>
+    <div class="stat-card green"><div class="stat-icon">✅</div><div class="stat-value gv">${active}</div><div class="stat-label">على رأس العمل</div></div>
+    <div class="stat-card blue"><div class="stat-icon">🌴</div><div class="stat-value bv">${onLeave}</div><div class="stat-label">في إجازة</div></div>
+    <div class="stat-card red"><div class="stat-icon">⚠️</div><div class="stat-value rv">${lateC}</div><div class="stat-label">رواتب متأخرة</div></div>
+    <div class="stat-card gold"><div class="stat-icon">💰</div><div class="stat-value">${fmt(paid)}</div><div class="stat-label">مدفوعات هذا الشهر</div></div>
+    <div class="stat-card red"><div class="stat-icon">📋</div><div class="stat-value rv">${fmt(loans)}</div><div class="stat-label">سلف قائمة (ر.س)</div></div>`;
+  const alerts=[];
+  DB.employees.filter(e=>isLate(e.id)).forEach(e=>alerts.push(`<div class="alert alert-err">⚠️ <strong>${e.name}</strong> — لم يستلم راتب ${MONTHS[cm()-1]} ${cy()}</div>`));
+  DB.loans.filter(l=>l.status!=='paid').forEach(l=>{const emp=getEmp(l.empId),bal=l.amount-(l.repaid||0);alerts.push(`<div class="alert alert-warn">💸 <strong>${emp?.name||''}</strong> — سلفة متبقية: ${fmt(bal)} ر.س</div>`);});
+  document.getElementById('dashAlerts').innerHTML=alerts.length?alerts.join(''):'<div class="alert alert-ok">✅ لا توجد تنبيهات</div>';
+  const recent=[...DB.salaries].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5);
+  document.getElementById('dashRecent').innerHTML=recent.length?recent.map(s=>{const emp=getEmp(s.empId);return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(201,168,76,.07);">
+    <div><div style="font-weight:700;font-size:12px;">${emp?.name||'-'}</div><div style="font-size:10px;color:var(--white-dim);">${MONTHS[s.month-1]} ${s.year} • ${s.date}</div></div>
+    <div style="color:var(--green-soft);font-weight:700;font-size:13px;">+${fmt(s.amount)}</div>
+  </div>`;}).join(''):'<div style="color:var(--white-dim);text-align:center;padding:20px;font-size:12px;">لا توجد عمليات</div>';
+  const tbody=document.getElementById('dashEmpTable');
+  if(!DB.employees.length){tbody.innerHTML='<tr><td colspan="7" style="text-align:center;padding:26px;color:var(--white-dim);">لا يوجد موظفون</td></tr>';return;}
+  tbody.innerHTML=DB.employees.map(emp=>{
+    const last=getLastSalary(emp.id),lb=getEmpLoanBal(emp.id),late=isLate(emp.id),isL=emp.status==='leave';
+    let rc=late?'row-late':isL?'row-leave':lb>0?'row-loan':'';
+    return `<tr class="${rc}"><td style="font-weight:700;">${getEmpEmoji(emp.role)} ${emp.name}</td><td>${emp.role}</td>
+      <td style="color:var(--gold-light);">${fmt(emp.salary)}</td>
+      <td><span class="badge ${isL?'badge-leave':'badge-active'}">${isL?'🌴 إجازة':'✅ نشط'}</span></td>
+      <td style="font-size:11px;">${last?`${MONTHS[last.month-1]} ${last.year}`:'<span style="color:var(--red-soft)">لم يُدفع</span>'}</td>
+      <td style="color:${lb>0?'var(--orange)':'var(--green-soft)'};">${lb>0?'-'+fmt(lb):'—'}</td>
+      <td><button class="btn btn-outline btn-sm" onclick="showPage('salary');setTimeout(()=>selectSalEmp(${emp.id}),80)">💰</button></td>
+    </tr>`;
+  }).join('');
+}
+ 
+// ============================================================
+// REPORTS
+// ============================================================
+let selRepYear=new Date().getFullYear();
+ 
+function renderReports() {
+  selRepYear=selRepYear||cy();
+  const years=[...new Set(DB.salaries.map(s=>s.year))];
+  if(!years.includes(cy()))years.push(cy());years.sort((a,b)=>b-a);
+  document.getElementById('reportYearTabs').innerHTML=years.map(y=>`<button class="year-tab ${y==selRepYear?'active':''}" onclick="selRepYear=${y};renderReports()">${y}</button>`).join('');
+  const ef=document.getElementById('reportEmpFilter');
+  const prev=ef.value;
+  ef.innerHTML='<option value="">كل الموظفين</option>'+DB.employees.map(e=>`<option value="${e.id}">${e.name}</option>`).join('');
+  ef.value=prev;
+  const fEmp=ef.value?parseInt(ef.value):null;
+  let sals=DB.salaries.filter(s=>s.year==selRepYear);
+  if(fEmp)sals=sals.filter(s=>s.empId==fEmp);
+  const totalP=sals.reduce((s,r)=>s+r.amount,0);
+  const lateC=DB.employees.filter(e=>isLate(e.id)&&(!fEmp||e.id==fEmp)).length;
+  document.getElementById('reportStats').innerHTML=`
+    <div class="stat-card gold"><div class="stat-icon">💰</div><div class="stat-value">${fmt(totalP)}</div><div class="stat-label">إجمالي ${selRepYear}</div></div>
+    <div class="stat-card green"><div class="stat-icon">👤</div><div class="stat-value gv">${[...new Set(sals.map(s=>s.empId))].length}</div><div class="stat-label">موظف مدفوع</div></div>
+    <div class="stat-card red"><div class="stat-icon">⚠️</div><div class="stat-value rv">${lateC}</div><div class="stat-label">متأخرون</div></div>
+    <div class="stat-card blue"><div class="stat-icon">🔢</div><div class="stat-value bv">${sals.length}</div><div class="stat-label">عدد الدفعات</div></div>`;
+  const tbody=document.getElementById('reportTableBody');
+  if(!sals.length){tbody.innerHTML='<tr><td colspan="10" style="text-align:center;padding:26px;color:var(--white-dim);">لا توجد بيانات</td></tr>';}
+  else{
+    tbody.innerHTML=[...sals].sort((a,b)=>a.empId-b.empId||b.year-a.year||b.month-a.month).map(s=>{
+      const emp=getEmp(s.empId),lb=getEmpLoanBal(s.empId),isL=emp?.status==='leave';
+      let rc=isL?'row-leave':lb>0?'row-loan':'';
+      return `<tr class="${rc}"><td style="font-weight:700;">${emp?.name||'-'}</td><td>${emp?.role||'-'}</td>
+        <td>${MONTHS[s.month-1]}</td><td style="color:var(--gold-light);">${fmt(emp?.salary||0)}</td>
+        <td style="color:var(--green-soft);font-weight:700;">${fmt(s.amount)}</td>
+        <td style="font-size:11px;">${s.date}</td>
+        <td>${s.method==='cash'?'💵 كاش':`🏦 ${s.transferBank||''}${s.transferTo?' → '+s.transferTo:''}`}</td>
+        <td style="color:${lb>0?'var(--orange)':'var(--green-soft)'};">${lb>0?'-'+fmt(lb):'—'}</td>
+        <td><span class="badge ${isL?'badge-leave':'badge-active'}">${isL?'🌴':'✅'}</span></td>
+        <td style="font-size:11px;color:var(--white-dim);">${s.notes||'—'}</td>
+      </tr>`;
+    }).join('');
+  }
+  const allTbody=document.getElementById('allEmpSummary');
+  allTbody.innerHTML=DB.employees.map(emp=>{
+    const es=DB.salaries.filter(s=>s.empId==emp.id),tp=es.reduce((s,r)=>s+r.amount,0);
+    const last=getLastSalary(emp.id),lb=getEmpLoanBal(emp.id),isL=emp.status==='leave';
+    return `<tr class="${isL?'row-leave':lb>0?'row-loan':''}">
+      <td style="font-weight:700;">${getEmpEmoji(emp.role)} ${emp.name}</td><td>${emp.role}</td>
+      <td style="color:var(--gold-light);">${fmt(emp.salary)}</td>
+      <td><span class="badge ${isL?'badge-leave':'badge-active'}">${isL?'🌴 إجازة':'✅ نشط'}</span></td>
+      <td style="font-size:11px;">${last?`${MONTHS[last.month-1]} ${last.year}`:'<span style="color:var(--red-soft)">—</span>'}</td>
+      <td style="color:var(--green-soft);font-weight:700;">${fmt(tp)}</td>
+      <td style="color:${lb>0?'var(--orange)':'var(--green-soft)'};">${lb>0?'-'+fmt(lb):'—'}</td>
+    </tr>`;
+  }).join('');
+}
+ 
+function exportCSV() {
+  let csv='\uFEFF';
+  csv+='الموظف,المسمى,الشهر,السنة,الراتب المقرر,المدفوع,التاريخ,الطريقة,ملاحظات\n';
+  DB.salaries.filter(s=>s.year==selRepYear).forEach(s=>{
+    const emp=getEmp(s.empId);
+    csv+=`"${emp?.name||''}","${emp?.role||''}","${MONTHS[s.month-1]}","${s.year}","${emp?.salary||0}","${s.amount}","${s.date}","${s.method}","${s.notes||''}"\n`;
+  });
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));
+  a.download=`رواتب_${selRepYear}.csv`;a.click();showToast('✅ تم التصدير');
+}
+ 
+// ============================================================
+// CHARTS
+// ============================================================
+function renderCharts() {
+  const monthly=Array(12).fill(0),delay=Array(12).fill(0),year=cy();
+  DB.salaries.filter(s=>s.year==year).forEach(s=>{monthly[s.month-1]+=s.amount;});
+  for(let m=1;m<=cm();m++){DB.employees.filter(e=>e.status==='active').forEach(emp=>{if(!DB.salaries.find(s=>s.empId==emp.id&&s.month==m&&s.year==year))delay[m-1]++;});}
+  Object.values(charts).forEach(c=>{try{c.destroy();}catch(e){}});charts={};
+  const co={responsive:true,maintainAspectRatio:false};
+  const tOpts=(title,color)=>({...co,plugins:{title:{display:true,text:title,color,font:{size:13,family:'Cairo',weight:'bold'}},legend:{labels:{color:'#C8BFA8',font:{family:'Cairo',size:11}}}},scales:{x:{ticks:{color:'#C8BFA8',font:{family:'Cairo',size:10}},grid:{color:'rgba(201,168,76,.06)'}},y:{ticks:{color:'#C8BFA8',font:{family:'Cairo'}},grid:{color:'rgba(201,168,76,.06)'}}}});
+  charts.monthly=new Chart(document.getElementById('monthlyChart'),{type:'bar',data:{labels:MONTHS,datasets:[{label:'المدفوعات',data:monthly,backgroundColor:MONTHS.map((_,i)=>i+1<=cm()?'rgba(201,168,76,.7)':'rgba(201,168,76,.2)'),borderColor:'#C9A84C',borderWidth:1.5,borderRadius:5}]},options:tOpts(`💰 المدفوعات الشهرية ${year}`,'#E8C97A')});
+  charts.delay=new Chart(document.getElementById('delayChart'),{type:'bar',data:{labels:MONTHS,datasets:[{label:'لم يستلموا',data:delay,backgroundColor:delay.map(v=>v>0?'rgba(224,92,92,.7)':'rgba(76,175,125,.4)'),borderColor:delay.map(v=>v>0?'#E05C5C':'#4CAF7D'),borderWidth:1.5,borderRadius:5}]},options:tOpts(`⚠️ تأخير الرواتب ${year}`,'#FF8A8A')});
+  const et=DB.employees.map(e=>({name:e.name,t:DB.salaries.filter(s=>s.empId==e.id&&s.year==year).reduce((s,r)=>s+r.amount,0)})).filter(e=>e.t>0);
+  if(et.length){charts.share=new Chart(document.getElementById('empShareChart'),{type:'doughnut',data:{labels:et.map(e=>e.name),datasets:[{data:et.map(e=>e.t),backgroundColor:['#C9A84C','#4CAF7D','#4A9EE8','#E8944A','#E05C5C','#9B59B6','#1ABC9C'],borderColor:'#0D1B2A',borderWidth:2}]},options:{...co,plugins:{title:{display:true,text:`📊 توزيع ${year}`},color:'#E8C97A',legend:{position:'bottom',labels:{color:'#C8BFA8',font:{family:'Cairo',size:11}}}}}});}
+  const cash=DB.salaries.filter(s=>s.year==year&&s.method==='cash').reduce((s,r)=>s+r.amount,0);
+  const trans=DB.salaries.filter(s=>s.year==year&&s.method==='transfer').reduce((s,r)=>s+r.amount,0);
+  charts.pay=new Chart(document.getElementById('transferChart'),{type:'pie',data:{labels:['💵 كاش','🏦 تحويل'],datasets:[{data:[cash||0,trans||0],backgroundColor:['rgba(76,175,125,.7)','rgba(74,158,232,.7)'],borderColor:['#4CAF7D','#4A9EE8'],borderWidth:2}]},options:{...co,plugins:{title:{display:true,text:`🏦 طرق الدفع ${year}`,color:'#E8C97A',font:{size:13,family:'Cairo',weight:'bold'}},legend:{position:'bottom',labels:{color:'#C8BFA8',font:{family:'Cairo',size:12}}}}}});
+  const totalC=DB.salaries.filter(s=>s.year==year).reduce((s,r)=>s+r.amount,0);
+  document.getElementById('chartStats').innerHTML=`
+    <div class="stat-card gold"><div class="stat-icon">💰</div><div class="stat-value">${fmt(totalC)}</div><div class="stat-label">إجمالي ${year}</div></div>
+    <div class="stat-card green"><div class="stat-icon">📅</div><div class="stat-value gv">${[...new Set(DB.salaries.filter(s=>s.year==year).map(s=>s.month))].length}</div><div class="stat-label">أشهر فيها دفعات</div></div>
+    <div class="stat-card blue"><div class="stat-icon">🏦</div><div class="stat-value bv">${fmt(trans)}</div><div class="stat-label">إجمالي التحويلات</div></div>
+    <div class="stat-card"><div class="stat-icon">💵</div><div class="stat-value">${fmt(cash)}</div><div class="stat-label">إجمالي الكاش</div></div>`;
+}
+ 
+// ============================================================
+// FIREBASE SETUP MODAL
+// ============================================================
+function openSetupModal() {
+  openModal(`
+    <div class="modal-title">🔥 إعداد Firebase للمزامنة التلقائية</div>
+    <div class="alert alert-warn" style="margin-bottom:14px;">⚠️ هذه الخطوة تحتاج إعداداً لمرة واحدة فقط — بعدها المزامنة تلقائية دائماً</div>
+    <div style="background:rgba(201,168,76,.05);border:1px solid rgba(201,168,76,.15);border-radius:10px;padding:14px;margin-bottom:16px;font-size:12px;color:var(--white-dim);line-height:2;">
+      <div style="font-weight:700;color:var(--gold-light);margin-bottom:8px;">📋 خطوات الإعداد:</div>
+      <div>1️⃣ اذهب إلى <span style="color:var(--blue)">console.firebase.google.com</span></div>
+      <div>2️⃣ أنشئ مشروعاً جديداً (مجاني)</div>
+      <div>3️⃣ اختر <strong>Realtime Database</strong> → Create database → Start in test mode</div>
+      <div>4️⃣ اذهب إلى Project Settings → Web app → أضف تطبيقاً</div>
+      <div>5️⃣ انسخ الـ firebaseConfig وأرسله لي</div>
+      <div>6️⃣ سأضيفه في الملف وترفعه على GitHub</div>
+    </div>
+    <div style="font-size:12px;color:var(--white-dim);margin-bottom:12px;">
+      💡 بعد الإعداد، كل ما تحفظ من أي جهاز يظهر فوراً على الأجهزة الأخرى تلقائياً — بدون أي خطوات يدوية.
+    </div>
+    <div style="background:rgba(76,175,125,.08);border:1px solid rgba(76,175,125,.2);border-radius:9px;padding:12px;font-size:12px;color:var(--green-soft);">
+      ✅ <strong>الخطة المجانية (Spark)</strong> تكفي بكثير لهذا الاستخدام: 1 GB تخزين، 10 GB نقل بيانات شهرياً.
+    </div>
+    <button class="btn btn-outline" style="width:100%;justify-content:center;margin-top:14px;" onclick="closeModal()">حسناً</button>
+  `);
+}
+ 
+// ============================================================
+// MODAL
+// ============================================================
+function openModal(html) { document.getElementById('modalContent').innerHTML=html; document.getElementById('modalOverlay').style.display='flex'; }
+function closeModal() { document.getElementById('modalOverlay').style.display='none'; }
+ 
+// ============================================================
+// EXPORT / IMPORT
+// ============================================================
+function exportData() {
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(DB,null,2)],{type:'application/json;charset=utf-8;'}));
+  a.download=`رواتب_${new Date().toISOString().split('T')[0]}.json`;a.click();
+  showToast('✅ تم تحميل النسخة الاحتياطية');
+}
+ 
+// ============================================================
+// FOCUS EMAIL ON LOAD
+// ============================================================
+document.addEventListener('DOMContentLoaded', ()=>{
+  const el=document.getElementById('emailInput');if(el)el.focus();
+});
+</script>
+</body>
+</html>
