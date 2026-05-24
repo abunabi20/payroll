@@ -31,11 +31,6 @@ const ALLOWED_EMAILS = [
   'majiid.q8@gmail.com','abunabi28@gmail.com'
 ];
 
-const DEFAULT_PASSWORD = '00000000';
-function getStoredPW(email){ return localStorage.getItem('pw_'+email.toLowerCase()) || DEFAULT_PASSWORD; }
-function setStoredPW(email,pw){ localStorage.setItem('pw_'+email.toLowerCase(), pw); }
-function isDefaultPW(email){ return getStoredPW(email) === DEFAULT_PASSWORD; }
-
 window.ALLOWED_EMAILS = ALLOWED_EMAILS;
 let fbConfigured = false;
 
@@ -662,6 +657,11 @@ function isLate(empId) {
 // ============================================================
 // LOGIN
 // ============================================================
+const DEFAULT_PASSWORD = '00000000';
+function getStoredPW(email){ return localStorage.getItem('pw_'+email.toLowerCase()) || DEFAULT_PASSWORD; }
+function setStoredPW(email,pw){ localStorage.setItem('pw_'+email.toLowerCase(), pw); }
+function isDefaultPW(email){ return getStoredPW(email) === DEFAULT_PASSWORD; }
+
 function toggleLoginPW(){
   const i=document.getElementById('pwLoginInput'),e=document.getElementById('loginEye');
   if(i.type==='password'){i.type='text';e.textContent='🙈';}else{i.type='password';e.textContent='👁️';}
