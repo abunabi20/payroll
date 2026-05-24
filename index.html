@@ -19,21 +19,21 @@ const firebaseConfig = {
   messagingSenderId: "622390153385",
   appId: "1:622390153385:web:b652d6662cd0afd08759b8"
 };
-
+ 
 window.ALLOWED_EMAILS = [
   'abunabi@gmail.com','abunabi20@gmail.com','abunabi22@gmail.com',
   'abunabi4@gmail.com','abunabi2000@hotmail.com','majiid1.q8@gmail.com',
   'majiid.q8@gmail.com','abunabi28@gmail.com'
 ];
-
+ 
 let _fbApp, _fbDB, _fbConfigured = false;
 window.fbConfigured_ref = () => _fbConfigured;
-
+ 
 try {
   _fbApp = firebase.initializeApp(firebaseConfig);
   _fbDB = firebase.database();
   _fbConfigured = true;
-
+ 
   // Real-time listener — يحدّث البيانات فور أي تغيير من أي جهاز
   _fbDB.ref('payroll').on('value', (snap) => {
     if (snap.exists()) {
@@ -46,7 +46,7 @@ try {
   _fbConfigured = false;
   console.error('Firebase error:', e);
 }
-
+ 
 window.fbSave = function() {
   try { localStorage.setItem('payroll_v2', JSON.stringify(window.DB)); } catch(e){}
   if (!_fbConfigured || !_fbDB) return;
@@ -68,19 +68,19 @@ window.fbSave = function() {
 *{margin:0;padding:0;box-sizing:border-box;}
 body{font-family:'Cairo',sans-serif;background:var(--navy);color:var(--white);min-height:100vh;overflow-x:hidden;}
 body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 20% 20%,rgba(201,168,76,.07) 0%,transparent 50%),radial-gradient(ellipse at 80% 80%,rgba(74,158,232,.05) 0%,transparent 50%);pointer-events:none;z-index:0;}
-
+ 
 /* SYNC INDICATOR */
 #syncBar{position:fixed;top:0;left:0;right:0;height:3px;background:transparent;z-index:9998;transition:all .3s;}
 #syncBar.syncing{background:linear-gradient(90deg,var(--gold),var(--green),var(--blue));animation:syncAnim 1s infinite;}
 #syncBar.done{background:var(--green);animation:fadeBar .8s forwards;}
 @keyframes syncAnim{0%{opacity:.5}50%{opacity:1}100%{opacity:.5}}
 @keyframes fadeBar{0%{opacity:1}100%{opacity:0}}
-
+ 
 /* LOGIN */
 #loginScreen{position:fixed;inset:0;background:var(--navy);z-index:9999;display:flex;align-items:center;justify-content:center;}
 .login-card{background:var(--navy-card);border:1px solid rgba(201,168,76,.3);border-radius:24px;padding:48px 40px;width:400px;max-width:95vw;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.6);}
 .login-logo{width:72px;height:72px;background:linear-gradient(135deg,var(--gold-dark),var(--gold));border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:36px;margin:0 auto 20px;}
-
+ 
 /* HEADER */
 .header{background:linear-gradient(135deg,var(--navy-card),var(--navy-mid));border-bottom:2px solid var(--gold-dark);position:sticky;top:0;z-index:100;box-shadow:0 4px 30px rgba(0,0,0,.5);}
 .header-inner{display:flex;align-items:center;justify-content:space-between;padding:12px 24px;gap:12px;flex-wrap:wrap;}
@@ -88,7 +88,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .logo-icon{width:46px;height:46px;background:linear-gradient(135deg,var(--gold),var(--gold-dark));border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:var(--sg);}
 .logo-text h1{font-size:18px;font-weight:900;color:var(--gold-light);}
 .logo-text p{font-size:11px;color:var(--white-dim);}
-
+ 
 /* SYNC STATUS */
 .sync-status{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;padding:5px 10px;border-radius:20px;border:1px solid;white-space:nowrap;}
 .sync-status.live{color:var(--green-soft);border-color:var(--green);background:rgba(76,175,125,.1);}
@@ -97,25 +97,25 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .sync-status.live .sync-dot{background:var(--green);}
 .sync-status.local .sync-dot{background:var(--orange);}
 @keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.4);opacity:.6}}
-
+ 
 /* NAV */
 .nav-tabs{display:flex;gap:3px;background:var(--navy);padding:4px;border-radius:10px;overflow-x:auto;}
 .nav-tab{padding:8px 14px;border:none;border-radius:7px;background:transparent;color:var(--white-dim);font-family:'Cairo',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;white-space:nowrap;display:flex;align-items:center;gap:5px;}
 .nav-tab:hover{color:var(--gold-light);background:rgba(201,168,76,.08);}
 .nav-tab.active{background:linear-gradient(135deg,var(--gold-dark),var(--gold));color:var(--navy);font-weight:700;box-shadow:var(--sg);}
-
+ 
 /* MAIN */
 .main{max-width:1400px;margin:0 auto;padding:24px 20px;position:relative;z-index:1;}
 .page{display:none;}.page.active{display:block;animation:fadeIn .3s ease;}
 @keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-
+ 
 /* CARDS */
 .card{background:var(--navy-card);border:1px solid rgba(201,168,76,.18);border-radius:var(--r);padding:22px;box-shadow:var(--sc);}
 .card-title{font-size:14px;font-weight:700;color:var(--gold-light);margin-bottom:18px;padding-bottom:10px;border-bottom:1px solid rgba(201,168,76,.12);display:flex;align-items:center;gap:7px;}
 .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
 .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;}
 @media(max-width:900px){.grid-2,.grid-3{grid-template-columns:1fr;}}
-
+ 
 /* STATS */
 .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:24px;}
 .stat-card{background:var(--navy-card);border:1px solid rgba(201,168,76,.18);border-radius:var(--r);padding:18px;transition:transform .2s,box-shadow .2s;position:relative;overflow:hidden;}
@@ -125,7 +125,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .stat-icon{font-size:26px;margin-bottom:8px;}.stat-value{font-size:26px;font-weight:900;color:var(--gold-light);}
 .stat-value.gv{color:var(--green-soft)}.stat-value.rv{color:var(--red-soft)}.stat-value.bv{color:var(--blue)}
 .stat-label{font-size:12px;color:var(--white-dim);margin-top:3px;}
-
+ 
 /* FORM */
 .form-group{margin-bottom:16px;}
 .form-group label{display:block;font-size:12px;font-weight:700;color:var(--gold-light);margin-bottom:6px;}
@@ -137,7 +137,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold);box-shadow:0 0 
 select option{background:var(--navy-mid);}
 .amount-wrap{position:relative;}.amount-wrap input{padding-left:46px;}
 .amount-sfx{position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:12px;font-weight:700;color:var(--gold);pointer-events:none;}
-
+ 
 /* BUTTONS */
 .btn{padding:10px 20px;border:none;border-radius:var(--rs);font-family:'Cairo',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:7px;}
 .btn-gold{background:linear-gradient(135deg,var(--gold-dark),var(--gold));color:var(--navy);box-shadow:var(--sg);}
@@ -151,7 +151,7 @@ select option{background:var(--navy-mid);}
 .btn-blue{background:rgba(74,158,232,.18);border:1.5px solid var(--blue);color:var(--blue);}
 .btn-sm{padding:6px 13px;font-size:11px;}
 .btn-save{background:linear-gradient(135deg,rgba(76,175,125,.3),rgba(76,175,125,.15));border:1.5px solid var(--green);color:var(--green-soft);}
-
+ 
 /* TOGGLE */
 .radio-toggle{display:flex;gap:8px;flex-wrap:wrap;}
 .radio-toggle label{display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 14px;border:1.5px solid rgba(201,168,76,.22);border-radius:7px;cursor:pointer;font-size:12px;font-weight:600;color:var(--white-dim);transition:all .2s;flex:1;}
@@ -160,7 +160,7 @@ select option{background:var(--navy-mid);}
 .lbl-transfer.sel{background:rgba(74,158,232,.18);border-color:var(--blue);color:var(--blue);}
 .lbl-active.sel{background:rgba(76,175,125,.18);border-color:var(--green);color:var(--green-soft);}
 .lbl-leave.sel{background:rgba(107,122,141,.18);border-color:var(--gray);color:var(--gray);}
-
+ 
 /* EMP SELECTOR */
 .emp-selector{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-bottom:22px;}
 .emp-card-sel{background:var(--navy-mid);border:2px solid rgba(201,168,76,.18);border-radius:12px;padding:14px 10px;cursor:pointer;text-align:center;transition:all .25s;position:relative;}
@@ -170,7 +170,7 @@ select option{background:var(--navy-mid);}
 .emp-avatar{width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,var(--gold-dark),var(--navy-card));display:flex;align-items:center;justify-content:center;font-size:22px;margin:0 auto 8px;border:2px solid rgba(201,168,76,.25);}
 .emp-card-name{font-size:12px;font-weight:700;color:var(--white);margin-bottom:3px;}
 .emp-card-role{font-size:10px;color:var(--white-dim);margin-bottom:5px;}
-
+ 
 /* BADGE */
 .badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;}
 .badge-active{background:rgba(76,175,125,.18);color:var(--green-soft);border:1px solid var(--green);}
@@ -178,7 +178,7 @@ select option{background:var(--navy-mid);}
 .badge-loan{background:rgba(232,148,74,.18);color:var(--orange);border:1px solid var(--orange);}
 .badge-partial{background:rgba(74,158,232,.18);color:var(--blue);border:1px solid var(--blue);}
 .badge-paid{background:rgba(76,175,125,.18);color:var(--green-soft);border:1px solid var(--green);}
-
+ 
 /* TABLE */
 .table-wrap{overflow-x:auto;border-radius:var(--rs);}
 table{width:100%;border-collapse:collapse;font-size:12px;}
@@ -191,96 +191,96 @@ tr.row-late{background:rgba(224,92,92,.1)!important;}tr.row-late:hover{backgroun
 tr.row-loan{background:rgba(232,148,74,.1)!important;}tr.row-loan:hover{background:rgba(232,148,74,.16)!important;}
 tr.row-leave{background:rgba(107,122,141,.1)!important;}tr.row-leave:hover{background:rgba(107,122,141,.16)!important;}
 tr.row-partial{background:rgba(74,158,232,.08)!important;}
-
+ 
 /* ALERT */
 .alert{padding:12px 16px;border-radius:var(--rs);margin-bottom:14px;display:flex;align-items:flex-start;gap:9px;font-size:12px;font-weight:600;}
 .alert-warn{background:rgba(232,148,74,.13);border:1px solid var(--orange);color:var(--orange);}
 .alert-ok{background:rgba(76,175,125,.13);border:1px solid var(--green);color:var(--green-soft);}
 .alert-err{background:rgba(224,92,92,.13);border:1px solid var(--red);color:var(--red-soft);}
-
+ 
 /* TRANSFER BOX */
 .transfer-box{background:rgba(74,158,232,.05);border:1px solid rgba(74,158,232,.2);border-radius:10px;padding:14px;margin-top:8px;}
 .loan-box{background:rgba(232,148,74,.05);border:1px solid rgba(232,148,74,.2);border-radius:10px;padding:14px;margin-top:8px;}
-
+ 
 /* REPEAT MONTHS */
 .repeat-box{background:rgba(74,158,232,.05);border:1px solid rgba(74,158,232,.18);border-radius:10px;padding:12px;margin-top:10px;}
 .rm-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:5px;}
 .rm-btn{padding:6px 2px;background:var(--navy-mid);border:1.5px solid rgba(74,158,232,.2);border-radius:6px;color:var(--white-dim);font-family:'Cairo',sans-serif;font-size:10px;font-weight:700;cursor:pointer;text-align:center;transition:all .2s;}
 .rm-btn.active{background:rgba(74,158,232,.2);border-color:var(--blue);color:var(--blue);}
 .rm-btn.current{opacity:.35;cursor:not-allowed;border-style:dashed;}
-
+ 
 /* SALARY DISPLAY */
 .sal-display{font-size:36px;font-weight:900;color:var(--gold-light);text-align:center;padding:16px;background:rgba(201,168,76,.05);border:1px solid rgba(201,168,76,.12);border-radius:10px;margin:12px 0;}
 .sal-display small{display:block;font-size:13px;color:var(--white-dim);font-weight:500;margin-top:4px;}
-
+ 
 /* MODAL */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);z-index:999;display:flex;align-items:center;justify-content:center;animation:fadeIn .2s ease;}
 .modal{background:var(--navy-card);border:1px solid rgba(201,168,76,.28);border-radius:18px;padding:26px;width:480px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.6);position:relative;}
 .modal-title{font-size:17px;font-weight:800;color:var(--gold-light);margin-bottom:18px;display:flex;align-items:center;gap:9px;}
 .modal-close{position:absolute;top:14px;left:14px;background:rgba(224,92,92,.18);border:1px solid var(--red);color:var(--red-soft);border-radius:7px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;}
 .modal-close:hover{background:rgba(224,92,92,.35);}
-
+ 
 /* YEAR TABS */
 .year-tabs{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:18px;}
 .year-tab{padding:7px 18px;background:var(--navy-mid);border:1.5px solid rgba(201,168,76,.18);border-radius:7px;color:var(--white-dim);font-family:'Cairo',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;}
 .year-tab.active{background:linear-gradient(135deg,var(--gold-dark),var(--gold));color:var(--navy);border-color:var(--gold);}
-
+ 
 /* LEGEND */
 .legend{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px;}
 .legend-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--white-dim);font-weight:600;}
 .legend-dot{width:13px;height:13px;border-radius:3px;flex-shrink:0;}
-
+ 
 /* CHART */
 .chart-box{background:var(--navy-card);border:1px solid rgba(201,168,76,.13);border-radius:var(--r);padding:20px;height:350px;position:relative;}
-
+ 
 /* NOTIF DOT */
 .notif-dot{width:8px;height:8px;background:var(--red);border-radius:50%;position:absolute;top:-2px;left:-2px;animation:pulse 1.5s infinite;}
-
+ 
 /* DIVIDER */
 hr.div{border:none;border-top:1px solid rgba(201,168,76,.1);margin:18px 0;}
-
+ 
 /* EMPTY */
 .empty{text-align:center;padding:40px 20px;color:var(--white-dim);}
 .empty .ei{font-size:44px;margin-bottom:12px;opacity:.45;}
-
+ 
 /* SECTION TITLE */
 .sec-title{display:flex;align-items:center;gap:11px;margin-bottom:22px;}
 .sec-title .ib{width:40px;height:40px;background:linear-gradient(135deg,var(--gold-dark),var(--gold));border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;}
 .sec-title h2{font-size:20px;font-weight:800;color:var(--gold-light);}
 .sec-title p{font-size:12px;color:var(--white-dim);}
-
+ 
 /* SCROLLBAR */
 ::-webkit-scrollbar{width:5px;height:5px;}
 ::-webkit-scrollbar-track{background:var(--navy);}
 ::-webkit-scrollbar-thumb{background:var(--gold-dark);border-radius:3px;}
-
+ 
 /* RESPONSIVE */
 @media(max-width:600px){.stats-row{grid-template-columns:1fr 1fr;}.header-inner{padding:10px 14px;}.main{padding:14px 10px;}.rm-grid{grid-template-columns:repeat(4,1fr);}}
-
+ 
 /* FIREBASE SETUP SCREEN */
 .setup-screen{background:var(--navy-card);border:1px solid rgba(201,168,76,.25);border-radius:20px;padding:30px;max-width:600px;margin:40px auto;}
-
+ 
 /* TOAST */
 #toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--navy-card);border:1px solid var(--gold);color:var(--gold-light);padding:11px 22px;border-radius:9px;font-family:'Cairo',sans-serif;font-size:13px;font-weight:700;z-index:9999;display:none;box-shadow:var(--sg);}
 </style>
 </head>
 <body>
-
+ 
 <div id="syncBar"></div>
-
+ 
 <!-- LOGIN -->
 <div id="loginScreen">
   <div class="login-card">
     <div class="login-logo">💼</div>
     <h1 style="font-size:21px;font-weight:900;color:var(--gold-light);margin-bottom:4px;">نظام إدارة الرواتب</h1>
     <p style="font-size:12px;color:var(--white-dim);margin-bottom:26px;">سجّل دخولك للمتابعة</p>
-
+ 
     <div style="text-align:right;margin-bottom:14px;">
       <label style="display:block;font-size:12px;font-weight:700;color:var(--gold-light);margin-bottom:6px;">📧 البريد الإلكتروني</label>
       <input type="email" id="emailInput" placeholder="example@gmail.com"
         style="text-align:right;" onkeydown="if(event.key==='Enter')document.getElementById('pwLoginInput').focus()">
     </div>
-
+ 
     <div style="text-align:right;margin-bottom:18px;">
       <label style="display:block;font-size:12px;font-weight:700;color:var(--gold-light);margin-bottom:6px;">🔑 كلمة المرور</label>
       <div style="position:relative;">
@@ -289,16 +289,16 @@ hr.div{border:none;border-top:1px solid rgba(201,168,76,.1);margin:18px 0;}
         <span onclick="toggleLoginPW()" style="position:absolute;left:11px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:15px;color:var(--white-dim);" id="loginEye">👁️</span>
       </div>
     </div>
-
+ 
     <div id="loginErr" style="display:none;" class="alert alert-err">❌ البريد أو كلمة المرور غير صحيحة</div>
     <button class="btn btn-gold" style="width:100%;justify-content:center;padding:13px;font-size:14px;" onclick="doLogin()">🔓 دخول</button>
     <p style="font-size:11px;color:rgba(200,191,168,.4);margin-top:16px;">كلمة المرور الأولية: 00000000</p>
   </div>
 </div>
-
+ 
 <!-- APP -->
 <div id="appContent" style="display:none;">
-
+ 
 <!-- HEADER -->
 <header class="header">
   <div class="header-inner">
@@ -326,9 +326,9 @@ hr.div{border:none;border-top:1px solid rgba(201,168,76,.1);margin:18px 0;}
     </div>
   </div>
 </header>
-
+ 
 <div class="main">
-
+ 
 <!-- DASHBOARD -->
 <div class="page active" id="page-dashboard">
   <div class="sec-title"><div class="ib">🏠</div><div><h2>لوحة التحكم</h2><p>نظرة عامة</p></div></div>
@@ -343,7 +343,7 @@ hr.div{border:none;border-top:1px solid rgba(201,168,76,.1);margin:18px 0;}
     </tr></thead><tbody id="dashEmpTable"></tbody></table></div>
   </div>
 </div>
-
+ 
 <!-- EMPLOYEES -->
 <div class="page" id="page-employees">
   <div class="sec-title"><div class="ib">👥</div><div><h2>إدارة الموظفين</h2><p>إضافة وتعديل</p></div></div>
@@ -389,7 +389,7 @@ hr.div{border:none;border-top:1px solid rgba(201,168,76,.1);margin:18px 0;}
     </div>
   </div>
 </div>
-
+ 
 <!-- SALARY -->
 <div class="page" id="page-salary">
   <div class="sec-title"><div class="ib">💰</div><div><h2>تسجيل الرواتب</h2><p>اختر الموظف وسجّل</p></div></div>
@@ -450,7 +450,7 @@ hr.div{border:none;border-top:1px solid rgba(201,168,76,.1);margin:18px 0;}
   </div>
   <div id="noEmpSelected" class="empty"><div class="ei">👆</div><p>اختر موظفاً من الأعلى</p></div>
 </div>
-
+ 
 <!-- LOANS -->
 <div class="page" id="page-loans">
   <div class="sec-title"><div class="ib">📋</div><div><h2>إدارة السلف</h2><p>تسجيل ومتابعة</p></div></div>
@@ -492,7 +492,7 @@ hr.div{border:none;border-top:1px solid rgba(201,168,76,.1);margin:18px 0;}
     </div>
   </div>
 </div>
-
+ 
 <!-- REPORTS -->
 <div class="page" id="page-reports">
   <div class="sec-title"><div class="ib">📊</div><div><h2>التقارير</h2><p>تفاصيل الرواتب</p></div></div>
@@ -528,7 +528,7 @@ hr.div{border:none;border-top:1px solid rgba(201,168,76,.1);margin:18px 0;}
     </tr></thead><tbody id="allEmpSummary"></tbody></table></div>
   </div>
 </div>
-
+ 
 <!-- CHARTS -->
 <div class="page" id="page-charts">
   <div class="sec-title"><div class="ib">📈</div><div><h2>الرسوم البيانية</h2><p>تحليل بصري</p></div></div>
@@ -542,28 +542,28 @@ hr.div{border:none;border-top:1px solid rgba(201,168,76,.1);margin:18px 0;}
     <div class="chart-box"><canvas id="transferChart"></canvas></div>
   </div>
 </div>
-
+ 
 </div><!-- end main -->
 </div><!-- end appContent -->
-
+ 
 <!-- MODAL -->
 <div id="modalOverlay" class="modal-overlay" style="display:none;" onclick="if(event.target===this)closeModal()">
   <div class="modal"><button class="modal-close" onclick="closeModal()">✕</button><div id="modalContent"></div></div>
 </div>
 <div id="toast"></div>
-
+ 
 <script>
 // ============================================================
 // DATA
 // ============================================================
 const MONTHS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-
+ 
 // DB is initialized in the module above and shared via window
 let DB = window.DB || { employees:[], salaries:[], loans:[], banks:[], beneficiaries:[], customRoles:[], nextEmpId:1, nextSalId:1, nextLoanId:1 };
 window.DB = DB; // ensure reference is shared
-
+ 
 function syncDB() { window.DB = DB; }
-
+ 
 // refreshAllViews exposed globally for Firebase listener
 let _refreshing = false;
 function refreshAllViews() {
@@ -583,14 +583,14 @@ function refreshAllViews() {
   setTimeout(() => { _refreshing = false; }, 500);
 }
 window.refreshAllViews = () => refreshAllViews();
-
+ 
 let selectedEmpId = null;
 let currentPayMethod = 'cash';
 let empStatusCurrent = 'active';
 let selectedReportYear = new Date().getFullYear();
 let charts = {};
 let appReady = false;
-
+ 
 // ============================================================
 // SAVE / LOAD
 // ============================================================
@@ -603,19 +603,19 @@ function save() {
     try { localStorage.setItem('payroll_v2', JSON.stringify(DB)); } catch(e){}
   }
 }
-
+ 
 function showSyncAnim() {
   const bar = document.getElementById('syncBar');
   bar.className = 'syncing';
   setTimeout(() => { bar.className = 'done'; }, 800);
   setTimeout(() => { bar.className = ''; }, 1600);
 }
-
+ 
 function manualSave() {
   save();
   showToast('💾 تم الحفظ ✅');
 }
-
+ 
 // ============================================================
 // UTILS
 // ============================================================
@@ -629,31 +629,31 @@ function showToast(msg, type='success') {
   setTimeout(() => { t.style.display='none'; }, 3000);
 }
 window.showToast = showToast;
-
+ 
 function fmt(n) { return Number(n||0).toLocaleString('ar-SA'); }
 function today() { return new Date().toISOString().split('T')[0]; }
 function cy() { return new Date().getFullYear(); }
 function cm() { return new Date().getMonth()+1; }
 function getEmp(id) { return DB.employees.find(e=>e.id==id); }
-
+ 
 function getEmpEmoji(role) {
   const m = {'سائق':'🚗','خادمة':'🧺','طباخ':'👨‍🍳','حارس أمن':'💂','حارس':'💂','سكرتير':'🗂️','عامل نظافة':'🧹','مشرف':'📋','موظف إداري':'🖥️','راعي':'🐄','زوجة':'👩','مربية':'👶'};
   return m[role]||'👤';
 }
-
+ 
 function getEmpLoanBal(empId) {
   return DB.loans.filter(l=>l.empId==empId&&l.status!=='paid').reduce((s,l)=>s+(l.amount-(l.repaid||0)),0);
 }
-
+ 
 function getLastSalary(empId) {
   return [...DB.salaries.filter(s=>s.empId==empId)].sort((a,b)=>b.year-a.year||b.month-a.month)[0]||null;
 }
-
+ 
 function isLate(empId) {
   const emp=getEmp(empId); if(!emp||emp.status==='leave') return false;
   return !DB.salaries.find(s=>s.empId==empId&&s.month==cm()&&s.year==cy()&&s.paid);
 }
-
+ 
 // ============================================================
 // LOGIN
 // ============================================================
@@ -661,36 +661,36 @@ const DEFAULT_PASSWORD = '00000000';
 function getStoredPW(email){ return localStorage.getItem('pw_'+email.toLowerCase()) || DEFAULT_PASSWORD; }
 function setStoredPW(email,pw){ localStorage.setItem('pw_'+email.toLowerCase(), pw); }
 function isDefaultPW(email){ return getStoredPW(email) === DEFAULT_PASSWORD; }
-
+ 
 function toggleLoginPW(){
   const i=document.getElementById('pwLoginInput'),e=document.getElementById('loginEye');
   if(i.type==='password'){i.type='text';e.textContent='🙈';}else{i.type='password';e.textContent='👁️';}
 }
-
+ 
 function doLogin() {
   const email = document.getElementById('emailInput').value.trim().toLowerCase();
   const pw = document.getElementById('pwLoginInput').value;
   const allowed = (window.ALLOWED_EMAILS||[]).map(e=>e.toLowerCase());
-
+ 
   if (!allowed.includes(email)) {
     showLoginErr('❌ هذا البريد غير مصرح له بالدخول'); return;
   }
   if (pw !== getStoredPW(email)) {
     showLoginErr('❌ كلمة المرور غير صحيحة'); return;
   }
-
+ 
   // Check if still using default password → force change
   if (isDefaultPW(email)) {
     showChangePWScreen(email); return;
   }
-
+ 
   // Success
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('appContent').style.display = 'block';
   window._currentEmail = email;
   initApp();
 }
-
+ 
 function showLoginErr(msg) {
   const e=document.getElementById('loginErr');
   e.textContent=msg; e.style.display='flex';
@@ -698,7 +698,7 @@ function showLoginErr(msg) {
   document.getElementById('pwLoginInput').value='';
   document.getElementById('pwLoginInput').focus();
 }
-
+ 
 function showChangePWScreen(email) {
   document.getElementById('loginScreen').innerHTML = `
     <div class="login-card">
@@ -717,7 +717,7 @@ function showChangePWScreen(email) {
       <button class="btn btn-gold" style="width:100%;justify-content:center;padding:13px;" onclick="confirmChangePW('${email}')">✅ حفظ وتسجيل الدخول</button>
     </div>`;
 }
-
+ 
 function confirmChangePW(email) {
   const p1=document.getElementById('newPW1').value;
   const p2=document.getElementById('newPW2').value;
@@ -732,7 +732,7 @@ function confirmChangePW(email) {
   initApp();
   showToast('✅ تم تغيير كلمة المرور بنجاح');
 }
-
+ 
 // ============================================================
 // INIT
 // ============================================================
@@ -753,7 +753,7 @@ function initApp() {
   const emailEl = document.getElementById('emailInput');
   if(emailEl) emailEl.addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
 }
-
+ 
 function initDefaults() {
   if(!DB.employees) DB.employees=[];
   if(!DB.salaries) DB.salaries=[];
@@ -765,7 +765,7 @@ function initDefaults() {
   if(!DB.nextSalId) DB.nextSalId=1;
   if(!DB.nextLoanId) DB.nextLoanId=1;
 }
-
+ 
 function updateSyncBadge() {
   const badge = document.getElementById('syncStatusBadge');
   const txt = document.getElementById('syncStatusText');
@@ -774,7 +774,7 @@ function updateSyncBadge() {
   badge.className = 'sync-status ' + (live?'live':'local');
   txt.textContent = live ? '🔥 مزامنة تلقائية' : '💾 محلي';
 }
-
+ 
 // ============================================================
 // NAVIGATION
 // ============================================================
@@ -790,12 +790,12 @@ function showPage(page) {
   if(page==='reports') renderReports();
   if(page==='charts') renderCharts();
 }
-
+ 
 function updateDate() {
   const el=document.getElementById('currentDate');
   if(el) el.innerHTML=`<strong style="color:var(--gold-light)">${new Date().toLocaleDateString('ar-SA',{weekday:'short',year:'numeric',month:'short',day:'numeric'})}</strong>`;
 }
-
+ 
 // ============================================================
 // EMPLOYEES
 // ============================================================
@@ -804,7 +804,7 @@ function setEmpStatus(s) {
   document.getElementById('lbl-active').className='lbl-active'+(s==='active'?' sel':'');
   document.getElementById('lbl-leave').className='lbl-leave'+(s==='leave'?' sel':'');
 }
-
+ 
 function refreshRoleSelect(val) {
   const builtIn=['سائق','خادمة','سكرتير','حارس أمن','عامل نظافة','طباخ','حارس','مشرف','موظف إداري','راعي','زوجة','مربية'];
   const all=[...builtIn,...(DB.customRoles||[]).filter(r=>!builtIn.includes(r))];
@@ -812,7 +812,7 @@ function refreshRoleSelect(val) {
   const prev=val||sel.value;
   sel.innerHTML='<option value="">-- اختر المسمى --</option>'+all.map(r=>`<option value="${r}" ${r===prev?'selected':''}>${getEmpEmoji(r)} ${r}</option>`).join('');
 }
-
+ 
 function addNewRole() {
   const v=document.getElementById('newRoleInput').value.trim(); if(!v) return;
   if(!DB.customRoles) DB.customRoles=[];
@@ -821,7 +821,7 @@ function addNewRole() {
   document.getElementById('newRoleInput').value='';
   showToast('✅ تم إضافة المسمى');
 }
-
+ 
 function saveEmployee() {
   const name=document.getElementById('empName').value.trim();
   const role=document.getElementById('empRole').value;
@@ -842,14 +842,14 @@ function saveEmployee() {
   }
   save(); clearEmpForm(); renderEmployeeList();
 }
-
+ 
 function clearEmpForm() {
   ['empName','empSalary','empStartDate','empNotes','editEmpId'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('empRole').value='';
   document.getElementById('empFormTitle').textContent='➕ إضافة موظف';
   setEmpStatus('active');
 }
-
+ 
 function editEmployee(id) {
   const emp=getEmp(id); if(!emp) return;
   document.getElementById('editEmpId').value=emp.id;
@@ -862,7 +862,7 @@ function editEmployee(id) {
   setEmpStatus(emp.status||'active');
   document.getElementById('empName').scrollIntoView({behavior:'smooth'});
 }
-
+ 
 function deleteEmployee(id) {
   const emp=getEmp(id); if(!emp) return;
   openModal(`<div class="modal-title" style="color:var(--red-soft);">🗑️ تأكيد الحذف</div>
@@ -877,21 +877,21 @@ function deleteEmployee(id) {
       <button class="btn btn-outline" style="flex:1;justify-content:center;" onclick="closeModal()">↩️ تراجع</button>
     </div>`);
 }
-
+ 
 function confirmDeleteEmp(id) {
   DB.employees=DB.employees.filter(e=>e.id!==id);
   DB.salaries=DB.salaries.filter(s=>s.empId!==id);
   DB.loans=DB.loans.filter(l=>l.empId!==id);
   save(); closeModal(); renderEmployeeList(); showToast('🗑️ تم الحذف');
 }
-
+ 
 function toggleLeave(id) {
   const emp=getEmp(id); if(!emp) return;
   emp.status=emp.status==='active'?'leave':'active';
   save(); renderEmployeeList();
   showToast(emp.status==='leave'?'🌴 تم تعيينه في إجازة':'✅ تم إعادته لرأس العمل');
 }
-
+ 
 function renderEmployeeList() {
   const c=document.getElementById('empListCards');
   document.getElementById('empCount').textContent=DB.employees.length;
@@ -916,7 +916,7 @@ function renderEmployeeList() {
     </div>`;
   }).join('');
 }
-
+ 
 // ============================================================
 // ROLES MODAL
 // ============================================================
@@ -930,7 +930,7 @@ function openManageRolesModal() {
     </div>`);
   renderRolesModalList();
 }
-
+ 
 function renderRolesModalList() {
   const builtIn=['سائق','خادمة','سكرتير','حارس أمن','عامل نظافة','طباخ','حارس','مشرف','موظف إداري','راعي','زوجة','مربية'];
   const custom=(DB.customRoles||[]).filter(r=>!builtIn.includes(r));
@@ -943,19 +943,19 @@ function renderRolesModalList() {
     <button class="btn btn-red btn-sm" onclick="confirmDeleteRole('${r}')">🗑️</button>
   </div>`).join('');
 }
-
+ 
 function saveRoleEdit(i,old) {
   const v=document.getElementById('re_'+i)?.value?.trim();if(!v)return;
   const idx=DB.customRoles.indexOf(old);if(idx>=0){DB.customRoles[idx]=v;DB.employees.forEach(e=>{if(e.role===old)e.role=v;});}
   save();refreshRoleSelect(v);renderRolesModalList();showToast('✅ تم التعديل');
 }
-
+ 
 function addRoleFromModal() {
   const v=document.getElementById('newRoleModal')?.value?.trim();if(!v)return;
   if(!DB.customRoles.includes(v)){DB.customRoles.push(v);save();}
   refreshRoleSelect(v);document.getElementById('newRoleModal').value='';renderRolesModalList();showToast('✅ تمت الإضافة');
 }
-
+ 
 function confirmDeleteRole(name) {
   openModal(`<div class="modal-title" style="color:var(--red-soft);">🗑️ حذف المسمى</div>
     <p style="margin-bottom:14px;">هل تريد حذف <strong style="color:var(--gold-light)">"${name}"</strong>؟</p>
@@ -964,11 +964,11 @@ function confirmDeleteRole(name) {
       <button class="btn btn-outline" style="flex:1;justify-content:center;" onclick="openManageRolesModal()">↩️ تراجع</button>
     </div>`);
 }
-
+ 
 function doDeleteRole(name) {
   DB.customRoles=DB.customRoles.filter(r=>r!==name);save();refreshRoleSelect('');closeModal();showToast('تم الحذف');
 }
-
+ 
 // ============================================================
 // SALARY
 // ============================================================
@@ -978,7 +978,7 @@ function setPayMethod(m) {
   document.getElementById('lbl-transfer').className='lbl-transfer'+(m==='transfer'?' sel':'');
   document.getElementById('transferFields').style.display=m==='transfer'?'block':'none';
 }
-
+ 
 function renderEmpSelector() {
   const c=document.getElementById('empSelectorCards');
   if(!DB.employees.length){c.innerHTML='<div class="empty" style="grid-column:1/-1;"><div class="ei">👤</div><p>أضف موظفين أولاً</p></div>';return;}
@@ -994,7 +994,7 @@ function renderEmpSelector() {
     </div>`;
   }).join('');
 }
-
+ 
 function selectSalEmp(id) {
   selectedEmpId=id;
   renderEmpSelector();
@@ -1026,12 +1026,12 @@ function selectSalEmp(id) {
   refreshTransferDropdowns();
   renderEmpSalHistory(id);
 }
-
+ 
 function updateSalDisplay() {
   const v=parseFloat(document.getElementById('salaryAmount').value)||0;
   document.getElementById('salDisplayEl').innerHTML=v>0?`<div class="sal-display">${fmt(v)}<small>ريال سعودي</small></div>`:'';
 }
-
+ 
 function updateMonthStatus() {
   const m=parseInt(document.getElementById('salaryMonth').value);
   const y=parseInt(document.getElementById('salaryYear').value);
@@ -1039,7 +1039,7 @@ function updateMonthStatus() {
   const ex=DB.salaries.find(s=>s.empId==selectedEmpId&&s.month==m&&s.year==y);
   document.getElementById('monthStatusMsg').innerHTML=ex?`<div class="alert alert-warn">⚠️ يوجد راتب مسجل لهذا الشهر بتاريخ ${ex.date} — سيتم إضافة دفعة جديدة.</div>`:'';
 }
-
+ 
 function buildRepeatGrid() {
   const g=document.getElementById('repeatGrid');if(!g)return;
   const cur=parseInt(document.getElementById('salaryMonth')?.value)||cm();
@@ -1047,12 +1047,12 @@ function buildRepeatGrid() {
     return `<button class="rm-btn ${isCur?'current':''}" id="rmb_${mn}" ${isCur?'disabled':''} onclick="toggleRM(${mn})" type="button">${m.substring(0,3)}</button>`;
   }).join('');
 }
-
+ 
 function toggleRM(mn) {
   const b=document.getElementById('rmb_'+mn);if(!b||b.disabled)return;
   b.classList.toggle('active');
 }
-
+ 
 function saveSalary() {
   if(!selectedEmpId){showToast('اختر موظفاً أولاً','error');return;}
   const amount=parseFloat(document.getElementById('salaryAmount').value);
@@ -1078,7 +1078,7 @@ function saveSalary() {
   renderEmpSalHistory(selectedEmpId);renderEmpSelector();updateMonthStatus();buildRepeatGrid();
   document.getElementById('salaryNotes').value='';document.getElementById('transferAmount').value='';
 }
-
+ 
 function deleteSalary(id) {
   const s=DB.salaries.find(r=>r.id===id);if(!s)return;
   const emp=getEmp(s.empId);
@@ -1093,12 +1093,12 @@ function deleteSalary(id) {
       <button class="btn btn-outline" style="flex:1;justify-content:center;" onclick="closeModal()">↩️ تراجع</button>
     </div>`);
 }
-
+ 
 function confirmDeleteSal(id) {
   DB.salaries=DB.salaries.filter(s=>s.id!==id);save();closeModal();
   if(selectedEmpId)renderEmpSalHistory(selectedEmpId);showToast('تم الحذف');
 }
-
+ 
 function renderEmpSalHistory(empId) {
   const sals=[...DB.salaries.filter(s=>s.empId==empId)].sort((a,b)=>b.year-a.year||b.month-a.month);
   const c=document.getElementById('empSalaryHistory');
@@ -1112,7 +1112,7 @@ function renderEmpSalHistory(empId) {
     </tr>`).join('')}
   </tbody></table></div>`;
 }
-
+ 
 // ============================================================
 // BENEFICIARIES & BANKS
 // ============================================================
@@ -1122,13 +1122,13 @@ function refreshTransferDropdowns() {
   if(toSel){ const p=toSel.value;toSel.innerHTML='<option value="">-- اختر --</option>'+(DB.beneficiaries||[]).map(b=>`<option ${b===p?'selected':''}>${b}</option>`).join('');  }
   if(bkSel){ const p=bkSel.value;bkSel.innerHTML='<option value="">-- اختر --</option>'+(DB.banks||[]).map(b=>`<option ${b===p?'selected':''}>${b}</option>`).join(''); }
 }
-
+ 
 function openManageBenModal() {
   openModal(`<div class="modal-title">👤 المستفيدون</div><div id="benList"></div><hr class="div">
     <div style="display:flex;gap:7px;"><input type="text" id="newBen" placeholder="مستفيد جديد..." style="flex:1;"><button class="btn btn-gold btn-sm" onclick="addBen()">➕</button></div>`);
   renderBenList();
 }
-
+ 
 function renderBenList() {
   const el=document.getElementById('benList');if(!el)return;
   el.innerHTML=(DB.beneficiaries||[]).map((b,i)=>`<div style="display:flex;gap:7px;align-items:center;padding:6px 0;border-bottom:1px solid rgba(201,168,76,.07);">
@@ -1137,18 +1137,18 @@ function renderBenList() {
     <button class="btn btn-red btn-sm" onclick="confirmDelBen('${b}')">🗑️</button>
   </div>`).join('');
 }
-
+ 
 function saveBen(i){const v=document.getElementById('ben_'+i)?.value?.trim();if(!v)return;DB.beneficiaries[i]=v;save();refreshTransferDropdowns();renderBenList();showToast('✅');}
 function addBen(){const v=document.getElementById('newBen')?.value?.trim();if(!v)return;DB.beneficiaries.push(v);save();refreshTransferDropdowns();document.getElementById('newBen').value='';renderBenList();showToast('✅');}
 function confirmDelBen(n){openModal(`<div class="modal-title" style="color:var(--red-soft);">🗑️ حذف المستفيد</div><p style="margin-bottom:14px;">حذف <strong>"${n}"</strong>؟</p><div style="display:flex;gap:8px;"><button class="btn btn-red" style="flex:1;justify-content:center;" onclick="delBen('${n}')">🗑️</button><button class="btn btn-outline" style="flex:1;justify-content:center;" onclick="openManageBenModal()">↩️</button></div>`);}
 function delBen(n){DB.beneficiaries=DB.beneficiaries.filter(b=>b!==n);save();refreshTransferDropdowns();closeModal();showToast('تم');}
-
+ 
 function openManageBanksModal() {
   openModal(`<div class="modal-title">🏦 البنوك</div><div id="bankList"></div><hr class="div">
     <div style="display:flex;gap:7px;"><input type="text" id="newBank" placeholder="بنك جديد..." style="flex:1;"><button class="btn btn-gold btn-sm" onclick="addBank()">➕</button></div>`);
   renderBankList();
 }
-
+ 
 function renderBankList() {
   const el=document.getElementById('bankList');if(!el)return;
   el.innerHTML=(DB.banks||[]).map((b,i)=>`<div style="display:flex;gap:7px;align-items:center;padding:6px 0;border-bottom:1px solid rgba(201,168,76,.07);">
@@ -1157,12 +1157,12 @@ function renderBankList() {
     <button class="btn btn-red btn-sm" onclick="confirmDelBank('${b}')">🗑️</button>
   </div>`).join('');
 }
-
+ 
 function saveBank(i){const v=document.getElementById('bank_'+i)?.value?.trim();if(!v)return;DB.banks[i]=v;save();refreshTransferDropdowns();renderBankList();showToast('✅');}
 function addBank(){const v=document.getElementById('newBank')?.value?.trim();if(!v)return;DB.banks.push(v);save();refreshTransferDropdowns();document.getElementById('newBank').value='';renderBankList();showToast('✅');}
 function confirmDelBank(n){openModal(`<div class="modal-title" style="color:var(--red-soft);">🗑️ حذف البنك</div><p style="margin-bottom:14px;">حذف <strong>"${n}"</strong>؟</p><div style="display:flex;gap:8px;"><button class="btn btn-red" style="flex:1;justify-content:center;" onclick="delBank('${n}')">🗑️</button><button class="btn btn-outline" style="flex:1;justify-content:center;" onclick="openManageBanksModal()">↩️</button></div>`);}
 function delBank(n){DB.banks=DB.banks.filter(b=>b!==n);save();refreshTransferDropdowns();closeModal();showToast('تم');}
-
+ 
 // ============================================================
 // LOANS
 // ============================================================
@@ -1177,7 +1177,7 @@ function populateLoanSelects() {
   }
   document.getElementById('repayDate').value=today();
 }
-
+ 
 function saveLoan() {
   const empId=parseInt(document.getElementById('loanEmp').value);
   const amount=parseFloat(document.getElementById('loanAmount').value);
@@ -1190,7 +1190,7 @@ function saveLoan() {
   document.getElementById('loanAmount').value='';document.getElementById('loanNotes').value='';document.getElementById('loanEmp').value='';
   renderLoansList();populateLoanSelects();
 }
-
+ 
 function repayLoan() {
   const loanId=parseInt(document.getElementById('repayLoanSelect').value);
   const type=document.getElementById('repayType').value;
@@ -1202,7 +1202,7 @@ function repayLoan() {
   else{if(!amount||amount<=0){showToast('أدخل مبلغاً','error');return;}loan.repaid=(loan.repaid||0)+amount;if(loan.repaid>=loan.amount){loan.repaid=loan.amount;loan.status='paid';}else loan.status='partial';loan.repayDate=date;}
   save();showToast('✅ تم تسجيل السداد');renderLoansList();populateLoanSelects();document.getElementById('repayAmount').value='';
 }
-
+ 
 function renderLoansList() {
   const total=DB.loans.filter(l=>l.status!=='paid').reduce((s,l)=>s+(l.amount-(l.repaid||0)),0);
   const cnt=DB.loans.filter(l=>l.status!=='paid').length;
@@ -1240,7 +1240,7 @@ function renderLoansList() {
     </tr>`;
   }).join('');
 }
-
+ 
 // ============================================================
 // DASHBOARD
 // ============================================================
@@ -1280,12 +1280,12 @@ function renderDashboard() {
     </tr>`;
   }).join('');
 }
-
+ 
 // ============================================================
 // REPORTS
 // ============================================================
 let selRepYear=new Date().getFullYear();
-
+ 
 function renderReports() {
   selRepYear=selRepYear||cy();
   const years=[...new Set(DB.salaries.map(s=>s.year))];
@@ -1336,7 +1336,7 @@ function renderReports() {
     </tr>`;
   }).join('');
 }
-
+ 
 function exportCSV() {
   let csv='\uFEFF';
   csv+='الموظف,المسمى,الشهر,السنة,الراتب المقرر,المدفوع,التاريخ,الطريقة,ملاحظات\n';
@@ -1347,7 +1347,7 @@ function exportCSV() {
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));
   a.download=`رواتب_${selRepYear}.csv`;a.click();showToast('✅ تم التصدير');
 }
-
+ 
 // ============================================================
 // CHARTS
 // ============================================================
@@ -1372,7 +1372,7 @@ function renderCharts() {
     <div class="stat-card blue"><div class="stat-icon">🏦</div><div class="stat-value bv">${fmt(trans)}</div><div class="stat-label">إجمالي التحويلات</div></div>
     <div class="stat-card"><div class="stat-icon">💵</div><div class="stat-value">${fmt(cash)}</div><div class="stat-label">إجمالي الكاش</div></div>`;
 }
-
+ 
 function openChangePWModal() {
   const email = window._currentEmail || '';
   openModal(`<div class="modal-title">🔑 تغيير كلمة المرور</div>
@@ -1387,7 +1387,7 @@ function openChangePWModal() {
       <button class="btn btn-outline" style="flex:1;justify-content:center;" onclick="closeModal()">إلغاء</button>
     </div>`);
 }
-
+ 
 function doChangePW(email) {
   const cur=document.getElementById('curPW').value;
   const p1=document.getElementById('nPW1').value;
@@ -1401,7 +1401,7 @@ function doChangePW(email) {
   closeModal();
   showToast('✅ تم تغيير كلمة المرور');
 }
-
+ 
 // ============================================================
 // FIREBASE SETUP MODAL
 // ============================================================
@@ -1427,13 +1427,13 @@ function openSetupModal() {
     <button class="btn btn-outline" style="width:100%;justify-content:center;margin-top:14px;" onclick="closeModal()">حسناً</button>
   `);
 }
-
+ 
 // ============================================================
 // MODAL
 // ============================================================
 function openModal(html) { document.getElementById('modalContent').innerHTML=html; document.getElementById('modalOverlay').style.display='flex'; }
 function closeModal() { document.getElementById('modalOverlay').style.display='none'; }
-
+ 
 // ============================================================
 // EXPORT / IMPORT
 // ============================================================
@@ -1443,7 +1443,7 @@ function exportData() {
   a.download=`رواتب_${new Date().toISOString().split('T')[0]}.json`;a.click();
   showToast('✅ تم تحميل النسخة الاحتياطية');
 }
-
+ 
 // ============================================================
 // FOCUS EMAIL ON LOAD
 // ============================================================
