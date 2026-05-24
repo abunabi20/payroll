@@ -76,8 +76,6 @@ function localLoad() { try { const d = localStorage.getItem('payroll_v2'); if(d)
 window.DB = DB;
 window.fbConfigured_ref = () => fbConfigured;
 localLoad();
-// استدعاء Firebase فوراً
-window.addEventListener('load', () => { if(window.initFirebase) window.initFirebase(); });
 </script>
 <style>
 :root {
@@ -769,7 +767,11 @@ function initApp() {
   window.appReady = true;
   setInterval(updateDate,60000);
   setInterval(()=>{ if(window.fbConfigured_ref&&window.fbConfigured_ref()) updateSyncBadge(); },5000);
-  document.getElementById('emailInput').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+  // Safe addEventListener — element may not exist after password change screen
+  const emailEl = document.getElementById('emailInput');
+  if(emailEl) emailEl.addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+  // Init Firebase now that app is ready
+  if(window.initFirebase) window.initFirebase();
 }
 
 function initDefaults() {
