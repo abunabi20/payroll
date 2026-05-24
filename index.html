@@ -565,18 +565,22 @@ window.DB = DB; // ensure reference is shared
 function syncDB() { window.DB = DB; }
 
 // refreshAllViews exposed globally for Firebase listener
+let _refreshing = false;
 function refreshAllViews() {
-  // Merge any Firebase updates into local DB
+  if (_refreshing) return;
+  _refreshing = true;
   if(window.DB && window.DB !== DB) { Object.assign(DB, window.DB); }
   const active = document.querySelector('.page.active');
-  if(!active) return;
-  const id = active.id.replace('page-','');
-  if(id==='dashboard') renderDashboard();
-  else if(id==='employees') renderEmployeeList();
-  else if(id==='salary') renderEmpSelector();
-  else if(id==='loans') { renderLoansList(); populateLoanSelects(); }
-  else if(id==='reports') renderReports();
-  else if(id==='charts') renderCharts();
+  if(active) {
+    const id = active.id.replace('page-','');
+    if(id==='dashboard') renderDashboard();
+    else if(id==='employees') renderEmployeeList();
+    else if(id==='salary') renderEmpSelector();
+    else if(id==='loans') { renderLoansList(); populateLoanSelects(); }
+    else if(id==='reports') renderReports();
+    else if(id==='charts') renderCharts();
+  }
+  setTimeout(() => { _refreshing = false; }, 500);
 }
 window.refreshAllViews = () => refreshAllViews();
 
