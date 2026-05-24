@@ -6,14 +6,10 @@
 <title>نظام إدارة رواتب العمال</title>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<!-- Firebase -->
-<script type="module">
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getDatabase, ref, set, get, onValue, push, remove, update }
-  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
-
-// ========== FIREBASE CONFIG ==========
-// استبدل هذه القيم بقيم مشروعك على Firebase
+<!-- Firebase CDN -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script>
 const firebaseConfig = {
   apiKey: "AIzaSyB4DNTl3_cECLj8oWrSPPJvdVGoH6WxfBU",
   authDomain: "salary-abunabi.firebaseapp.com",
@@ -21,80 +17,43 @@ const firebaseConfig = {
   projectId: "salary-abunabi",
   storageBucket: "salary-abunabi.firebasestorage.app",
   messagingSenderId: "622390153385",
-  appId: "1:622390153385:web:b652d6662cd0afd08759b8",
-  measurementId: "G-ML74G9S7ZE"
+  appId: "1:622390153385:web:b652d6662cd0afd08759b8"
 };
 
-const ALLOWED_EMAILS = [
+window.ALLOWED_EMAILS = [
   'abunabi@gmail.com','abunabi20@gmail.com','abunabi22@gmail.com',
   'abunabi4@gmail.com','abunabi2000@hotmail.com','majiid1.q8@gmail.com',
   'majiid.q8@gmail.com','abunabi28@gmail.com'
 ];
 
-window.ALLOWED_EMAILS = ALLOWED_EMAILS;
-let fbConfigured = false;
+let _fbApp, _fbDB, _fbConfigured = false;
+window.fbConfigured_ref = () => _fbConfigured;
 
-window.initFirebase = function() {
-  try {
-    const cfg = firebaseConfig;
-    if (cfg.apiKey === 'REPLACE_API_KEY') { useFallbackMode(); return; }
-    app = initializeApp(cfg);
-    db = getDatabase(app);
-    fbConfigured = true;
-    // Real-time listener
-    onValue(ref(db, 'payroll'), (snap) => {
-      if (snap.exists()) {
-        const d = snap.val();
-        // Update the main DB object
-        Object.assign(window.DB, d);
-        if (window.appReady && window.refreshAllViews) window.refreshAllViews();
-      }
-    });
-    window.showToast('🔥 متصل بـ Firebase — المزامنة التلقائية فعّالة ✅', 'success');
-  } catch(e) { useFallbackMode(); }
-};
-
-window.fbSave = async function() {
-  const currentDB = window.DB;
-  if (!fbConfigured || !db) { localSave(); return; }
-  try {
-    await set(ref(db, 'payroll'), currentDB);
-    localSave();
-  } catch(e) { localSave(); window.showToast('⚠️ تعذّر الحفظ السحابي، تم الحفظ محلياً', 'warn'); }
-};
-
-window.ALLOWED_EMAILS = ALLOWED_EMAILS;
-
-function useFallbackMode() {
-  fbConfigured = false;
-  window.showToast('💾 وضع محلي — Firebase غير مُعدّ بعد', 'warn');
-}
-
-function localSave() { try { localStorage.setItem('payroll_v2', JSON.stringify(DB)); } catch(e){} }
-function localLoad() { try { const d = localStorage.getItem('payroll_v2'); if(d) DB = {...DB, ...JSON.parse(d)}; } catch(e){} }
-
-window.DB = DB;
-window.fbConfigured_ref = () => fbConfigured;
-localLoad();
-
-// تهيئة Firebase مباشرة
 try {
-  const cfg = firebaseConfig;
-  app = initializeApp(cfg);
-  db = getDatabase(app);
-  fbConfigured = true;
-  onValue(ref(db, 'payroll'), (snap) => {
+  _fbApp = firebase.initializeApp(firebaseConfig);
+  _fbDB = firebase.database();
+  _fbConfigured = true;
+
+  // Real-time listener — يحدّث البيانات فور أي تغيير من أي جهاز
+  _fbDB.ref('payroll').on('value', (snap) => {
     if (snap.exists()) {
       const d = snap.val();
-      Object.assign(window.DB, d);
+      if (window.DB) Object.assign(window.DB, d);
       if (window.appReady && window.refreshAllViews) window.refreshAllViews();
     }
   });
-  window.fbReady = true;
 } catch(e) {
-  fbConfigured = false;
-  window.fbReady = false;
+  _fbConfigured = false;
+  console.error('Firebase error:', e);
 }
+
+window.fbSave = function() {
+  try { localStorage.setItem('payroll_v2', JSON.stringify(window.DB)); } catch(e){}
+  if (!_fbConfigured || !_fbDB) return;
+  _fbDB.ref('payroll').set(window.DB)
+    .then(() => { if(window.showToast) window.showToast('☁️ تم الحفظ والمزامنة ✅'); })
+    .catch(() => { if(window.showToast) window.showToast('⚠️ الحفظ محلي فقط','warn'); });
+};
 </script>
 <style>
 :root {
