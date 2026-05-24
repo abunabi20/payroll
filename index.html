@@ -45,8 +45,9 @@ window.initFirebase = function() {
     onValue(ref(db, 'payroll'), (snap) => {
       if (snap.exists()) {
         const d = snap.val();
-        DB = { ...DB, ...d };
-        if (window.appReady) refreshAllViews();
+        // Update the main DB object
+        Object.assign(window.DB, d);
+        if (window.appReady && window.refreshAllViews) window.refreshAllViews();
       }
     });
     window.showToast('🔥 متصل بـ Firebase — المزامنة التلقائية فعّالة ✅', 'success');
@@ -54,9 +55,10 @@ window.initFirebase = function() {
 };
 
 window.fbSave = async function() {
+  const currentDB = window.DB;
   if (!fbConfigured || !db) { localSave(); return; }
   try {
-    await set(ref(db, 'payroll'), DB);
+    await set(ref(db, 'payroll'), currentDB);
     localSave();
   } catch(e) { localSave(); window.showToast('⚠️ تعذّر الحفظ السحابي، تم الحفظ محلياً', 'warn'); }
 };
@@ -74,6 +76,8 @@ function localLoad() { try { const d = localStorage.getItem('payroll_v2'); if(d)
 window.DB = DB;
 window.fbConfigured_ref = () => fbConfigured;
 localLoad();
+// استدعاء Firebase فوراً
+window.addEventListener('load', () => { if(window.initFirebase) window.initFirebase(); });
 </script>
 <style>
 :root {
@@ -579,10 +583,26 @@ hr.div{border:none;border-top:1px solid rgba(201,168,76,.1);margin:18px 0;}
 const MONTHS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
 
 // DB is initialized in the module above and shared via window
-// We use a proxy to keep window.DB in sync
 let DB = window.DB || { employees:[], salaries:[], loans:[], banks:[], beneficiaries:[], customRoles:[], nextEmpId:1, nextSalId:1, nextLoanId:1 };
+window.DB = DB; // ensure reference is shared
 
 function syncDB() { window.DB = DB; }
+
+// refreshAllViews exposed globally for Firebase listener
+function refreshAllViews() {
+  // Merge any Firebase updates into local DB
+  if(window.DB && window.DB !== DB) { Object.assign(DB, window.DB); }
+  const active = document.querySelector('.page.active');
+  if(!active) return;
+  const id = active.id.replace('page-','');
+  if(id==='dashboard') renderDashboard();
+  else if(id==='employees') renderEmployeeList();
+  else if(id==='salary') renderEmpSelector();
+  else if(id==='loans') { renderLoansList(); populateLoanSelects(); }
+  else if(id==='reports') renderReports();
+  else if(id==='charts') renderCharts();
+}
+window.refreshAllViews = () => refreshAllViews();
 
 let selectedEmpId = null;
 let currentPayMethod = 'cash';
@@ -771,18 +791,6 @@ function updateSyncBadge() {
   const live = window.fbConfigured_ref && window.fbConfigured_ref();
   badge.className = 'sync-status ' + (live?'live':'local');
   txt.textContent = live ? '🔥 مزامنة تلقائية' : '💾 محلي';
-}
-
-function refreshAllViews() {
-  const active = document.querySelector('.page.active');
-  if(!active) return;
-  const id = active.id.replace('page-','');
-  if(id==='dashboard') renderDashboard();
-  else if(id==='employees') renderEmployeeList();
-  else if(id==='salary') renderEmpSelector();
-  else if(id==='loans') { renderLoansList(); populateLoanSelects(); }
-  else if(id==='reports') renderReports();
-  else if(id==='charts') renderCharts();
 }
 
 // ============================================================
