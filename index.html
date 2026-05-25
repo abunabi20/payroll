@@ -761,6 +761,19 @@ function initApp() {
   // Safe addEventListener
   const emailEl = document.getElementById('emailInput');
   if(emailEl) emailEl.addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+
+  // ✅ جلب فوري من Firebase عند الدخول — يحل مشكلة Windows
+  if(_fbDB && _fbConfigured) {
+    _fbDB.ref('payroll').get().then((snap) => {
+      if(snap.exists()) {
+        const d = snap.val();
+        Object.assign(DB, d);
+        Object.assign(window.DB, d);
+        renderDashboard();
+        showToast('✅ تم تحميل البيانات');
+      }
+    }).catch(()=>{});
+  }
 }
 
 function initDefaults() {
