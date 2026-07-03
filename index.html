@@ -323,7 +323,10 @@ hr.div{border:none;border-top:1px solid rgba(201,168,76,.1);margin:18px 0;}
       <button class="nav-tab" onclick="showPage('employees')" id="tab-employees"><span>👥</span> الموظفون</button>
       <button class="nav-tab" onclick="showPage('salary')" id="tab-salary"><span>💰</span> تسجيل راتب</button>
       <button class="nav-tab" onclick="showPage('loans')" id="tab-loans"><span>📋</span> السلف</button>
+      <button class="nav-tab" onclick="showPage('documents')" id="tab-documents"><span>📁</span> المستندات</button>
+      <button class="nav-tab" onclick="showPage('alerts')" id="tab-alerts" style="position:relative;"><span>🔔</span> التنبيهات<span id="alertBadge" style="display:none;position:absolute;top:-4px;left:-4px;background:var(--red);color:white;border-radius:50%;width:16px;height:16px;font-size:9px;display:flex;align-items:center;justify-content:center;font-weight:900;"></span></button>
       <button class="nav-tab" onclick="showPage('reports')" id="tab-reports"><span>📊</span> التقارير</button>
+      <button class="nav-tab" onclick="showPage('print')" id="tab-print"><span>🖨️</span> الطباعة</button>
       <button class="nav-tab" onclick="showPage('charts')" id="tab-charts"><span>📈</span> الرسوم</button>
     </div>
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
@@ -360,6 +363,15 @@ hr.div{border:none;border-top:1px solid rgba(201,168,76,.1);margin:18px 0;}
     <div class="card">
       <div class="card-title" id="empFormTitle">➕ إضافة موظف</div>
       <input type="hidden" id="editEmpId">
+
+      <!-- صورة الموظف -->
+      <div class="form-group" style="text-align:center;margin-bottom:18px;">
+        <div id="empPhotoPreview" style="width:90px;height:90px;border-radius:50%;background:linear-gradient(135deg,var(--gold-dark),var(--navy-card));display:flex;align-items:center;justify-content:center;font-size:36px;margin:0 auto 10px;border:2px solid rgba(201,168,76,.3);overflow:hidden;cursor:pointer;" onclick="document.getElementById('empPhotoInput').click()">👤</div>
+        <input type="file" id="empPhotoInput" accept="image/*" style="display:none;" onchange="previewEmpPhoto(event)">
+        <button class="btn btn-outline btn-sm" onclick="document.getElementById('empPhotoInput').click()">📷 رفع صورة</button>
+        <button class="btn btn-red btn-sm" onclick="clearEmpPhoto()" id="clearPhotoBtn" style="display:none;">🗑️</button>
+        <input type="hidden" id="empPhotoData">
+      </div>
       <div class="form-row">
         <div class="form-group"><label>الاسم <span class="req">*</span></label><input type="text" id="empName" placeholder="اسم الموظف"></div>
         <div class="form-group"><label>المسمى الوظيفي <span class="req">*</span></label>
@@ -553,6 +565,139 @@ hr.div{border:none;border-top:1px solid rgba(201,168,76,.1);margin:18px 0;}
 </div>
 
 </div><!-- end main -->
+<!-- PRINT -->
+<div class="page" id="page-print">
+  <div class="sec-title"><div class="ib">🖨️</div><div><h2>الطباعة والتقارير</h2><p>تقرير شامل أو تقرير موظف</p></div></div>
+
+  <!-- TAB SWITCHER -->
+  <div style="display:flex;gap:8px;margin-bottom:20px;">
+    <button class="btn btn-gold" id="printTabAll" onclick="switchPrintTab('all')" style="flex:1;justify-content:center;">📋 تقرير شامل للجميع</button>
+    <button class="btn btn-outline" id="printTabOne" onclick="switchPrintTab('one')" style="flex:1;justify-content:center;">👤 تقرير موظف واحد</button>
+  </div>
+
+  <!-- ALL EMPLOYEES REPORT -->
+  <div id="printSectionAll">
+    <div class="card" style="margin-bottom:18px;">
+      <div class="card-title">⚙️ إعدادات التقرير الشامل</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>من تاريخ</label>
+          <input type="date" id="printFromDate">
+        </div>
+        <div class="form-group">
+          <label>إلى تاريخ</label>
+          <input type="date" id="printToDate">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>اختر الموظفين (اتركه فارغاً للكل)</label>
+        <div id="printEmpCheckboxes" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin-top:8px;"></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:14px;">
+        <button class="btn btn-gold" onclick="generateAllReport()" style="flex:1;justify-content:center;">👁️ معاينة</button>
+        <button class="btn btn-outline" onclick="printAllReport()">🖨️ طباعة PDF</button>
+      </div>
+    </div>
+    <div id="allReportPreview"></div>
+  </div>
+
+  <!-- ONE EMPLOYEE REPORT -->
+  <div id="printSectionOne" style="display:none;">
+    <div class="card" style="margin-bottom:18px;">
+      <div class="card-title">⚙️ إعدادات تقرير الموظف</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>اختر الموظف <span class="req">*</span></label>
+          <select id="printOneEmp" onchange="generateOneReport()">
+            <option value="">-- اختر --</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>السنة</label>
+          <select id="printOneYear" onchange="generateOneReport()"></select>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button class="btn btn-outline" onclick="printOneReport()">🖨️ طباعة PDF</button>
+      </div>
+    </div>
+    <div id="oneReportPreview"></div>
+  </div>
+</div>
+
+<!-- DOCUMENTS -->
+<div class="page" id="page-documents">
+  <div class="sec-title"><div class="ib">📁</div><div><h2>المستندات</h2><p>متابعة مستندات الموظفين وتواريخ انتهائها</p></div></div>
+
+  <div class="grid-2" style="margin-bottom:20px;">
+    <div class="card">
+      <div class="card-title" id="docFormTitle">➕ إضافة مستند لموظف</div>
+      <div class="form-group">
+        <label>الموظف <span class="req">*</span></label>
+        <select id="docEmpSelect"><option value="">-- اختر الموظف --</option></select>
+      </div>
+      <div class="form-group">
+        <label>نوع المستند <span class="req">*</span></label>
+        <div style="display:flex;gap:7px;">
+          <select id="docTypeSelect" style="flex:1;"><option value="">-- اختر النوع --</option></select>
+          <button class="btn btn-outline btn-sm" onclick="openManageDocTypesModal()">⚙️</button>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>تاريخ الإصدار</label>
+          <input type="date" id="docIssueDate">
+        </div>
+        <div class="form-group">
+          <label>تاريخ الانتهاء <span class="req">*</span></label>
+          <input type="date" id="docExpireDate">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>رقم المستند</label>
+        <input type="text" id="docNumber" placeholder="مثال: A12345678">
+      </div>
+      <div class="form-group">
+        <label>ملاحظات</label>
+        <textarea id="docNotes" rows="2" placeholder="ملاحظات..."></textarea>
+      </div>
+      <input type="hidden" id="editDocId">
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-gold" onclick="saveDoc()" style="flex:1;justify-content:center;">💾 حفظ المستند</button>
+        <button class="btn btn-outline btn-sm" onclick="clearDocForm()">🔄</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📋 أنواع المستندات المحفوظة</div>
+      <p style="font-size:12px;color:var(--white-dim);margin-bottom:12px;">أنواع المستندات التي أضفتها — تظهر في قائمة الاختيار أعلاه</p>
+      <div id="docTypesList"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📁 جميع مستندات الموظفين</div>
+    <div class="legend" style="margin-bottom:14px;">
+      <div class="legend-item"><div class="legend-dot" style="background:rgba(224,92,92,.4);border:1px solid var(--red)"></div>منتهية</div>
+      <div class="legend-item"><div class="legend-dot" style="background:rgba(232,148,74,.4);border:1px solid var(--orange)"></div>أقل من شهرين</div>
+      <div class="legend-item"><div class="legend-dot" style="background:rgba(74,158,232,.2);border:1px solid var(--blue)"></div>أقل من 6 أشهر</div>
+      <div class="legend-item"><div class="legend-dot" style="background:rgba(76,175,125,.2);border:1px solid var(--green)"></div>سارية</div>
+    </div>
+    <div class="table-wrap">
+      <table><thead><tr>
+        <th>الموظف</th><th>المستند</th><th>الرقم</th><th>تاريخ الانتهاء</th><th>الوقت المتبقي</th><th>الحالة</th><th>إجراء</th>
+      </tr></thead><tbody id="docsTable"></tbody></table>
+    </div>
+  </div>
+</div>
+
+<!-- ALERTS -->
+<div class="page" id="page-alerts">
+  <div class="sec-title"><div class="ib">🔔</div><div><h2>التنبيهات</h2><p>المستندات التي تحتاج تجديداً قريباً</p></div></div>
+  <div class="stats-row" id="alertStats"></div>
+  <div id="alertsList"></div>
+</div>
+
 </div><!-- end appContent -->
 
 <!-- MODAL -->
@@ -756,8 +901,11 @@ function initApp() {
   updateSyncBadge();
   appReady = true;
   window.appReady = true;
+  initDocs();
+  updateAlertBadge();
   setInterval(updateDate,60000);
   setInterval(()=>{ if(window.fbConfigured_ref&&window.fbConfigured_ref()) updateSyncBadge(); },5000);
+  setInterval(updateAlertBadge, 60000); // تحديث التنبيهات كل دقيقة
   // Safe addEventListener
   const emailEl = document.getElementById('emailInput');
   if(emailEl) emailEl.addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
@@ -804,11 +952,15 @@ function showPage(page) {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
   document.getElementById('page-'+page).classList.add('active');
-  document.getElementById('tab-'+page).classList.add('active');
+  const tab=document.getElementById('tab-'+page);
+  if(tab) tab.classList.add('active');
   if(page==='dashboard') renderDashboard();
   if(page==='employees') renderEmployeeList();
   if(page==='salary') renderEmpSelector();
   if(page==='loans') { renderLoansList(); populateLoanSelects(); }
+  if(page==='documents') renderDocs();
+  if(page==='alerts') renderAlerts();
+  if(page==='print') { switchPrintTab('all'); setupAllReportCheckboxes(); document.getElementById('printFromDate').value=''; document.getElementById('printToDate').value=''; }
   if(page==='reports') renderReports();
   if(page==='charts') renderCharts();
 }
@@ -854,12 +1006,17 @@ function saveEmployee() {
   if(!name){showToast('أدخل اسم الموظف','error');return;}
   if(!role){showToast('اختر المسمى','error');return;}
   if(!salary||salary<=0){showToast('أدخل راتباً صحيحاً','error');return;}
+  const photo = document.getElementById('empPhotoData').value;
   if(editId){
     const emp=getEmp(parseInt(editId));
-    if(emp){Object.assign(emp,{name,role,salary,startDate:start,notes,status:empStatusCurrent});}
+    if(emp){Object.assign(emp,{name,role,salary,startDate:start,notes,status:empStatusCurrent});
+      if(photo) emp.photo = photo;
+    }
     showToast('✅ تم تحديث الموظف');
   } else {
-    DB.employees.push({id:DB.nextEmpId++,name,role,salary,startDate:start||today(),notes,status:empStatusCurrent});
+    const newEmp = {id:DB.nextEmpId++,name,role,salary,startDate:start||today(),notes,status:empStatusCurrent};
+    if(photo) newEmp.photo = photo;
+    DB.employees.push(newEmp);
     showToast('✅ تم إضافة الموظف');
   }
   save(); clearEmpForm(); renderEmployeeList();
@@ -869,6 +1026,7 @@ function clearEmpForm() {
   ['empName','empSalary','empStartDate','empNotes','editEmpId'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('empRole').value='';
   document.getElementById('empFormTitle').textContent='➕ إضافة موظف';
+  clearEmpPhoto();
   setEmpStatus('active');
 }
 
@@ -881,6 +1039,12 @@ function editEmployee(id) {
   document.getElementById('empStartDate').value=emp.startDate||'';
   document.getElementById('empNotes').value=emp.notes||'';
   document.getElementById('empFormTitle').textContent='✏️ تعديل: '+emp.name;
+  // Show existing photo
+  if(emp.photo) {
+    document.getElementById('empPhotoData').value=emp.photo;
+    document.getElementById('empPhotoPreview').innerHTML=`<img src="${emp.photo}" style="width:100%;height:100%;object-fit:cover;">`;
+    document.getElementById('clearPhotoBtn').style.display='inline-flex';
+  } else { clearEmpPhoto(); }
   setEmpStatus(emp.status||'active');
   document.getElementById('empName').scrollIntoView({behavior:'smooth'});
 }
@@ -910,6 +1074,8 @@ function confirmDeleteEmp(id) {
 function toggleLeave(id) {
   const emp=getEmp(id); if(!emp) return;
   emp.status=emp.status==='active'?'leave':'active';
+  if(emp.status==='leave') emp.leaveDate=today();
+  else delete emp.leaveDate;
   save(); renderEmployeeList();
   showToast(emp.status==='leave'?'🌴 تم تعيينه في إجازة':'✅ تم إعادته لرأس العمل');
 }
@@ -920,8 +1086,16 @@ function renderEmployeeList() {
   if(!DB.employees.length){c.innerHTML='<div class="empty"><div class="ei">👤</div><p>لا يوجد موظفون</p></div>';return;}
   c.innerHTML=DB.employees.map(emp=>{
     const lb=getEmpLoanBal(emp.id),isL=emp.status==='leave';
+    // حساب مدة الإجازة
+    let leaveCounter = '';
+    if(isL && emp.leaveDate) {
+      const days = daysDiff(emp.leaveDate);
+      leaveCounter = `<div style="margin-top:5px;background:rgba(107,122,141,.2);border:1px solid var(--gray);border-radius:6px;padding:3px 8px;font-size:11px;color:var(--gray);font-weight:700;">🌴 منذ ${formatDuration(days)}</div>`;
+    }
     return `<div style="background:var(--navy-mid);border:1.5px solid rgba(201,168,76,${isL?'.1':'.2'});border-radius:11px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;opacity:${isL?.75:1}">
-      <div style="width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,var(--gold-dark),var(--navy-card));display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">${getEmpEmoji(emp.role)}</div>
+      <div style="width:42px;height:42px;border-radius:50%;overflow:hidden;flex-shrink:0;">
+        ${emp.photo ? `<img src="${emp.photo}" style="width:42px;height:42px;object-fit:cover;border-radius:50%;border:2px solid rgba(201,168,76,.3);">` : `<div style="width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,var(--gold-dark),var(--navy-card));display:flex;align-items:center;justify-content:center;font-size:18px;border:2px solid rgba(201,168,76,.3);">${getEmpEmoji(emp.role)}</div>`}
+      </div>
       <div style="flex:1;min-width:0;">
         <div style="font-weight:700;font-size:13px;">${emp.name}</div>
         <div style="font-size:11px;color:var(--white-dim);">${emp.role} • ${fmt(emp.salary)} ر.س</div>
@@ -929,6 +1103,7 @@ function renderEmployeeList() {
           <span class="badge ${isL?'badge-leave':'badge-active'}">${isL?'🌴 إجازة':'✅ نشط'}</span>
           ${lb>0?`<span class="badge badge-loan">سلفة: ${fmt(lb)}</span>`:''}
         </div>
+        ${leaveCounter}
       </div>
       <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;">
         <button class="btn btn-outline btn-sm" onclick="editEmployee(${emp.id})">✏️</button>
@@ -1280,7 +1455,13 @@ function renderDashboard() {
     <div class="stat-card gold"><div class="stat-icon">💰</div><div class="stat-value">${fmt(paid)}</div><div class="stat-label">مدفوعات هذا الشهر</div></div>
     <div class="stat-card red"><div class="stat-icon">📋</div><div class="stat-value rv">${fmt(loans)}</div><div class="stat-label">سلف قائمة (ر.س)</div></div>`;
   const alerts=[];
-  DB.employees.filter(e=>isLate(e.id)).forEach(e=>alerts.push(`<div class="alert alert-err">⚠️ <strong>${e.name}</strong> — لم يستلم راتب ${MONTHS[cm()-1]} ${cy()}</div>`));
+  const todayDay = new Date().getDate();
+  DB.employees.filter(e=>isLate(e.id)).forEach(e=>{
+    // تنبيه الشهر الحالي يظهر فقط بعد اليوم 20
+    if(todayDay >= 20) {
+      alerts.push(`<div class="alert alert-err">⚠️ <strong>${e.name}</strong> — لم يستلم راتب ${MONTHS[cm()-1]} ${cy()}</div>`);
+    }
+  });
   DB.loans.filter(l=>l.status!=='paid').forEach(l=>{const emp=getEmp(l.empId),bal=l.amount-(l.repaid||0);alerts.push(`<div class="alert alert-warn">💸 <strong>${emp?.name||''}</strong> — سلفة متبقية: ${fmt(bal)} ر.س</div>`);});
   document.getElementById('dashAlerts').innerHTML=alerts.length?alerts.join(''):'<div class="alert alert-ok">✅ لا توجد تنبيهات</div>';
   const recent=[...DB.salaries].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5);
@@ -1464,6 +1645,283 @@ function exportData() {
   a.href=URL.createObjectURL(new Blob([JSON.stringify(DB,null,2)],{type:'application/json;charset=utf-8;'}));
   a.download=`رواتب_${new Date().toISOString().split('T')[0]}.json`;a.click();
   showToast('✅ تم تحميل النسخة الاحتياطية');
+}
+
+// ============================================================
+// EMPLOYEE PHOTO
+// ============================================================
+function previewEmpPhoto(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const data = e.target.result;
+    document.getElementById('empPhotoData').value = data;
+    const prev = document.getElementById('empPhotoPreview');
+    prev.innerHTML = `<img src="${data}" style="width:100%;height:100%;object-fit:cover;">`;
+    document.getElementById('clearPhotoBtn').style.display = 'inline-flex';
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearEmpPhoto() {
+  document.getElementById('empPhotoData').value = '';
+  document.getElementById('empPhotoPreview').innerHTML = '👤';
+  document.getElementById('clearPhotoBtn').style.display = 'none';
+  document.getElementById('empPhotoInput').value = '';
+}
+
+function getEmpPhoto(empId) {
+  const emp = getEmp(empId);
+  return emp?.photo || '';
+}
+
+function getEmpAvatar(empId, size=44) {
+  const emp = getEmp(empId);
+  if (emp?.photo) {
+    return `<img src="${emp.photo}" style="width:${size}px;height:${size}px;border-radius:50%;object-fit:cover;border:2px solid rgba(201,168,76,.3);">`;
+  }
+  return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:linear-gradient(135deg,var(--gold-dark),var(--navy-card));display:flex;align-items:center;justify-content:center;font-size:${size*0.4}px;border:2px solid rgba(201,168,76,.3);flex-shrink:0;">${getEmpEmoji(emp?.role||'')}</div>`;
+}
+
+// ============================================================
+// PRINT REPORTS
+// ============================================================
+let _printTab = 'all';
+
+function switchPrintTab(tab) {
+  _printTab = tab;
+  document.getElementById('printSectionAll').style.display = tab==='all'?'block':'none';
+  document.getElementById('printSectionOne').style.display = tab==='one'?'block':'none';
+  document.getElementById('printTabAll').className = tab==='all'?'btn btn-gold':'btn btn-outline';
+  document.getElementById('printTabOne').className = tab==='one'?'btn btn-gold':'btn btn-outline';
+  if(tab==='one') setupOneReportSelects();
+  if(tab==='all') setupAllReportCheckboxes();
+}
+
+function setupAllReportCheckboxes() {
+  const c = document.getElementById('printEmpCheckboxes');
+  if(!c) return;
+  c.innerHTML = DB.employees.map(e => `
+    <label style="display:flex;align-items:center;gap:7px;padding:7px 10px;background:var(--navy-mid);border:1px solid rgba(201,168,76,.2);border-radius:7px;cursor:pointer;font-size:12px;color:var(--white);">
+      <input type="checkbox" value="${e.id}" checked style="width:auto;accent-color:var(--gold);">
+      ${getEmpEmoji(e.role)} ${e.name}
+    </label>`).join('');
+}
+
+function setupOneReportSelects() {
+  const empSel = document.getElementById('printOneEmp');
+  if(empSel) {
+    empSel.innerHTML = '<option value="">-- اختر --</option>' +
+      DB.employees.map(e=>`<option value="${e.id}">${getEmpEmoji(e.role)} ${e.name}</option>`).join('');
+  }
+  const yearSel = document.getElementById('printOneYear');
+  if(yearSel) {
+    const years = [...new Set(DB.salaries.map(s=>s.year))];
+    if(!years.includes(cy())) years.push(cy());
+    years.sort((a,b)=>b-a);
+    yearSel.innerHTML = years.map(y=>`<option value="${y}">${y}</option>`).join('');
+  }
+}
+
+function generateAllReport() {
+  const from = document.getElementById('printFromDate').value;
+  const to = document.getElementById('printToDate').value;
+  const checked = [...document.querySelectorAll('#printEmpCheckboxes input:checked')].map(i=>parseInt(i.value));
+  const emps = DB.employees.filter(e => !checked.length || checked.includes(e.id));
+
+  let html = `<div id="printableAll" style="background:var(--navy-card);border:1px solid rgba(201,168,76,.2);border-radius:16px;padding:24px;">`;
+  html += `<div style="text-align:center;margin-bottom:20px;padding-bottom:16px;border-bottom:2px solid var(--gold-dark);">
+    <div style="font-size:22px;font-weight:900;color:var(--gold-light);">📋 تقرير الرواتب الشامل</div>
+    <div style="font-size:12px;color:var(--white-dim);margin-top:6px;">${from||'الكل'} — ${to||'الكل'} • طُبع: ${new Date().toLocaleDateString('ar-SA')}</div>
+  </div>`;
+
+  emps.forEach(emp => {
+    let sals = DB.salaries.filter(s => s.empId === emp.id);
+    if(from) sals = sals.filter(s => s.date >= from);
+    if(to) sals = sals.filter(s => s.date <= to);
+    const totalPaid = sals.reduce((s,r)=>s+r.amount,0);
+    const paidMonths = sals.length;
+    // حساب الأشهر غير المدفوعة
+    const loanBal = getEmpLoanBal(emp.id);
+    // الأشهر من تاريخ البداية حتى اليوم
+    const startYear = from ? parseInt(from.split('-')[0]) : (emp.startDate ? parseInt(emp.startDate.split('-')[0]) : cy());
+    const startMonth = from ? parseInt(from.split('-')[1]) : (emp.startDate ? parseInt(emp.startDate.split('-')[1]) : 1);
+    const endYear = to ? parseInt(to.split('-')[0]) : cy();
+    const endMonth = to ? parseInt(to.split('-')[1]) : cm();
+    let totalMonths = (endYear - startYear)*12 + (endMonth - startMonth + 1);
+    if(totalMonths < 0) totalMonths = 0;
+    const unpaidMonths = Math.max(0, totalMonths - paidMonths);
+    const unpaidValue = unpaidMonths * emp.salary;
+
+    html += `<div style="margin-bottom:18px;padding:14px;background:var(--navy-mid);border-radius:10px;border:1px solid rgba(201,168,76,.15);">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+        ${getEmpAvatar(emp.id, 40)}
+        <div>
+          <div style="font-weight:800;font-size:14px;color:var(--white);">${emp.name}</div>
+          <div style="font-size:11px;color:var(--white-dim);">${emp.role} • الراتب: ${fmt(emp.salary)} ر.س</div>
+        </div>
+        <span class="badge ${emp.status==='leave'?'badge-leave':'badge-active'}" style="margin-right:auto;">${emp.status==='leave'?'🌴 إجازة':'✅ نشط'}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;text-align:center;">
+        <div style="background:rgba(76,175,125,.1);border:1px solid var(--green);border-radius:8px;padding:8px;">
+          <div style="font-size:18px;font-weight:900;color:var(--green-soft);">${paidMonths}</div>
+          <div style="font-size:10px;color:var(--white-dim);">رواتب مستلمة</div>
+        </div>
+        <div style="background:rgba(201,168,76,.1);border:1px solid var(--gold);border-radius:8px;padding:8px;">
+          <div style="font-size:18px;font-weight:900;color:var(--gold-light);">${fmt(totalPaid)}</div>
+          <div style="font-size:10px;color:var(--white-dim);">إجمالي مدفوع (ر.س)</div>
+        </div>
+        <div style="background:rgba(224,92,92,.1);border:1px solid var(--red);border-radius:8px;padding:8px;">
+          <div style="font-size:18px;font-weight:900;color:var(--red-soft);">${unpaidMonths}</div>
+          <div style="font-size:10px;color:var(--white-dim);">أشهر غير مدفوعة</div>
+        </div>
+        <div style="background:rgba(232,148,74,.1);border:1px solid var(--orange);border-radius:8px;padding:8px;">
+          <div style="font-size:18px;font-weight:900;color:var(--orange);">${fmt(unpaidValue)}</div>
+          <div style="font-size:10px;color:var(--white-dim);">قيمة غير مدفوعة (ر.س)</div>
+        </div>
+      </div>
+      ${loanBal>0?`<div style="margin-top:8px;padding:6px 10px;background:rgba(232,148,74,.1);border-radius:6px;font-size:11px;color:var(--orange);">⚠️ سلفة متبقية: ${fmt(loanBal)} ر.س</div>`:''}
+    </div>`;
+  });
+
+  // الإجمالي الكلي
+  const grandTotal = emps.reduce((s,e)=>{
+    let sals = DB.salaries.filter(sal=>sal.empId===e.id);
+    if(from) sals=sals.filter(s=>s.date>=from);
+    if(to) sals=sals.filter(s=>s.date<=to);
+    return s + sals.reduce((a,r)=>a+r.amount,0);
+  },0);
+  html += `<div style="text-align:center;padding:16px;background:rgba(201,168,76,.1);border:2px solid var(--gold-dark);border-radius:12px;margin-top:8px;">
+    <div style="font-size:13px;color:var(--white-dim);margin-bottom:4px;">إجمالي جميع المدفوعات في الفترة</div>
+    <div style="font-size:28px;font-weight:900;color:var(--gold-light);">${fmt(grandTotal)} ر.س</div>
+  </div>`;
+  html += `</div>`;
+  document.getElementById('allReportPreview').innerHTML = html;
+}
+
+function printAllReport() {
+  generateAllReport();
+  setTimeout(()=>{
+    const content = document.getElementById('printableAll');
+    if(!content) return;
+    const w = window.open('','_blank');
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>تقرير الرواتب</title>
+    <style>body{font-family:Arial,sans-serif;direction:rtl;padding:20px;background:white;color:#000;}
+    img{max-width:100%;}.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;}
+    </style></head><body>${content.outerHTML}<script>window.print();window.close();<\/script></body></html>`);
+    w.document.close();
+  },300);
+}
+
+function generateOneReport() {
+  const empId = parseInt(document.getElementById('printOneEmp').value);
+  const year = parseInt(document.getElementById('printOneYear').value);
+  if(!empId) { document.getElementById('oneReportPreview').innerHTML=''; return; }
+  const emp = getEmp(empId);
+  if(!emp) return;
+
+  const sals = DB.salaries.filter(s=>s.empId===empId && s.year===year).sort((a,b)=>a.month-b.month);
+  const totalPaid = sals.reduce((s,r)=>s+r.amount,0);
+  const paidMonths = sals.map(s=>s.month);
+  const unpaidMonths = MONTHS.map((_,i)=>i+1).filter(m=>!paidMonths.includes(m)&&(year<cy()||(year===cy()&&m<=cm())));
+  const loanBal = getEmpLoanBal(empId);
+  const empDocs = (DB.docs||[]).filter(d=>d.empId===empId);
+  const photo = emp.photo || '';
+
+  let html = `<div id="printableOne" style="background:var(--navy-card);border:1px solid rgba(201,168,76,.2);border-radius:16px;padding:24px;">`;
+
+  // Header with photo
+  html += `<div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;padding-bottom:16px;border-bottom:2px solid var(--gold-dark);">
+    ${photo ? `<img src="${photo}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid var(--gold);">` : `<div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#9A7A2E,#162233);display:flex;align-items:center;justify-content:center;font-size:36px;border:3px solid rgba(201,168,76,.3);">${getEmpEmoji(emp.role)}</div>`}
+    <div>
+      <div style="font-size:22px;font-weight:900;color:var(--gold-light);">${emp.name}</div>
+      <div style="font-size:13px;color:var(--white-dim);">${emp.role} • الراتب الشهري: ${fmt(emp.salary)} ر.س</div>
+      <span class="badge ${emp.status==='leave'?'badge-leave':'badge-active'}">${emp.status==='leave'?'🌴 إجازة':'✅ نشط'}</span>
+      ${loanBal>0?`<span class="badge badge-loan" style="margin-right:6px;">سلفة: ${fmt(loanBal)} ر.س</span>`:''}
+    </div>
+    <div style="margin-right:auto;text-align:left;font-size:12px;color:var(--white-dim);">تقرير سنة ${year}<br>طُبع: ${new Date().toLocaleDateString('ar-SA')}</div>
+  </div>`;
+
+  // Stats
+  html += `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;">
+    <div style="background:rgba(76,175,125,.1);border:1px solid var(--green);border-radius:8px;padding:12px;text-align:center;">
+      <div style="font-size:22px;font-weight:900;color:var(--green-soft);">${sals.length}</div>
+      <div style="font-size:10px;color:var(--white-dim);">رواتب مستلمة</div>
+    </div>
+    <div style="background:rgba(201,168,76,.1);border:1px solid var(--gold);border-radius:8px;padding:12px;text-align:center;">
+      <div style="font-size:22px;font-weight:900;color:var(--gold-light);">${fmt(totalPaid)}</div>
+      <div style="font-size:10px;color:var(--white-dim);">إجمالي مدفوع (ر.س)</div>
+    </div>
+    <div style="background:rgba(224,92,92,.1);border:1px solid var(--red);border-radius:8px;padding:12px;text-align:center;">
+      <div style="font-size:22px;font-weight:900;color:var(--red-soft);">${unpaidMonths.length}</div>
+      <div style="font-size:10px;color:var(--white-dim);">أشهر غير مدفوعة</div>
+    </div>
+    <div style="background:rgba(232,148,74,.1);border:1px solid var(--orange);border-radius:8px;padding:12px;text-align:center;">
+      <div style="font-size:22px;font-weight:900;color:var(--orange);">${fmt(unpaidMonths.length*emp.salary)}</div>
+      <div style="font-size:10px;color:var(--white-dim);">قيمة غير مدفوعة (ر.س)</div>
+    </div>
+  </div>`;
+
+  // Salary table
+  html += `<div style="margin-bottom:18px;"><div style="font-weight:700;color:var(--gold-light);margin-bottom:10px;">💰 سجل الرواتب ${year}</div>
+  <table style="width:100%;border-collapse:collapse;font-size:12px;">
+    <thead><tr style="background:var(--navy-mid);">
+      <th style="padding:8px;text-align:right;color:var(--gold-light);border-bottom:1px solid rgba(201,168,76,.2);">الشهر</th>
+      <th style="padding:8px;text-align:right;color:var(--gold-light);border-bottom:1px solid rgba(201,168,76,.2);">المبلغ</th>
+      <th style="padding:8px;text-align:right;color:var(--gold-light);border-bottom:1px solid rgba(201,168,76,.2);">التاريخ</th>
+      <th style="padding:8px;text-align:right;color:var(--gold-light);border-bottom:1px solid rgba(201,168,76,.2);">الطريقة</th>
+    </tr></thead><tbody>`;
+  MONTHS.forEach((m,i)=>{
+    const mn=i+1;
+    const sal=sals.find(s=>s.month===mn);
+    const isUnpaid = !sal && (year<cy()||(year===cy()&&mn<=cm()));
+    html+=`<tr style="border-bottom:1px solid rgba(201,168,76,.05);${isUnpaid?'background:rgba(224,92,92,.08)':''}">
+      <td style="padding:7px 8px;color:var(--white);">${m}</td>
+      <td style="padding:7px 8px;color:${sal?'var(--green-soft)':'var(--red-soft)'};">${sal?fmt(sal.amount)+' ر.س':'—'}</td>
+      <td style="padding:7px 8px;color:var(--white-dim);font-size:11px;">${sal?sal.date:isUnpaid?'لم يُدفع':''}</td>
+      <td style="padding:7px 8px;color:var(--white-dim);">${sal?(sal.method==='cash'?'💵 كاش':'🏦 '+sal.transferBank):''}</td>
+    </tr>`;
+  });
+  html += `</tbody></table></div>`;
+
+  // Documents
+  if(empDocs.length) {
+    html += `<div><div style="font-weight:700;color:var(--gold-light);margin-bottom:10px;">📁 مستندات الموظف</div>`;
+    html += empDocs.map(doc=>{
+      const daysLeft = Math.floor((new Date(doc.expire)-new Date())/86400000);
+      const rem = formatRemaining(daysLeft);
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 10px;background:var(--navy-mid);border-radius:7px;margin-bottom:6px;">
+        <span style="font-weight:700;color:var(--white);">📄 ${doc.type}${doc.number?' ('+doc.number+')':''}</span>
+        <span style="font-size:11px;color:var(--white-dim);">ينتهي: ${doc.expire}</span>
+        <span style="font-size:11px;color:${rem.color};font-weight:700;">${rem.text}</span>
+      </div>`;
+    }).join('');
+    html += `</div>`;
+  }
+
+  html += `</div>`;
+  document.getElementById('oneReportPreview').innerHTML = html;
+}
+
+function printOneReport() {
+  generateOneReport();
+  setTimeout(()=>{
+    const content = document.getElementById('printableOne');
+    if(!content) { showToast('اختر موظفاً أولاً','error'); return; }
+    const w = window.open('','_blank');
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>تقرير الموظف</title>
+    <style>
+      body{font-family:Arial,sans-serif;direction:rtl;padding:20px;background:white;color:#000;}
+      .badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;border:1px solid #ccc;}
+      table{width:100%;border-collapse:collapse;}
+      th,td{padding:7px 8px;text-align:right;border-bottom:1px solid #eee;}
+      th{background:#f5f5f5;font-weight:bold;}
+      img{border-radius:50%;object-fit:cover;}
+      @media print{body{padding:10px;}}
+    </style></head><body>${content.outerHTML}<script>window.print();window.close();<\/script></body></html>`);
+    w.document.close();
+  },300);
 }
 
 // ============================================================
