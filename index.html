@@ -398,6 +398,11 @@ hr.div{border:none;border-top:1px solid rgba(201,168,76,.1);margin:18px 0;}
           <label class="lbl-leave" id="lbl-leave" onclick="setEmpStatus('leave')"><input type="radio" name="es" value="leave"><span>🌴 إجازة</span></label>
         </div>
       </div>
+      <div class="form-group" id="leaveDateGroup" style="display:none;">
+        <label>📅 تاريخ بداية الإجازة</label>
+        <input type="date" id="empLeaveDate" placeholder="متى سافر؟">
+        <div style="font-size:11px;color:var(--white-dim);margin-top:4px;">يُستخدم لحساب عداد مدة الإجازة</div>
+      </div>
       <div class="form-group"><label>ملاحظات</label><textarea id="empNotes" rows="2" placeholder="ملاحظات..."></textarea></div>
       <div style="display:flex;gap:8px;">
         <button class="btn btn-gold" onclick="saveEmployee()">💾 حفظ الموظف</button>
@@ -977,6 +982,9 @@ function setEmpStatus(s) {
   empStatusCurrent=s;
   document.getElementById('lbl-active').className='lbl-active'+(s==='active'?' sel':'');
   document.getElementById('lbl-leave').className='lbl-leave'+(s==='leave'?' sel':'');
+  const ldg = document.getElementById('leaveDateGroup');
+  if(ldg) ldg.style.display = s==='leave' ? 'block' : 'none';
+  if(s==='active') { const ld=document.getElementById('empLeaveDate'); if(ld) ld.value=''; }
 }
 
 function refreshRoleSelect(val) {
@@ -1007,15 +1015,19 @@ function saveEmployee() {
   if(!role){showToast('اختر المسمى','error');return;}
   if(!salary||salary<=0){showToast('أدخل راتباً صحيحاً','error');return;}
   const photo = document.getElementById('empPhotoData').value;
+  const leaveDate = document.getElementById('empLeaveDate').value;
   if(editId){
     const emp=getEmp(parseInt(editId));
     if(emp){Object.assign(emp,{name,role,salary,startDate:start,notes,status:empStatusCurrent});
       if(photo) emp.photo = photo;
+      if(empStatusCurrent==='leave' && leaveDate) emp.leaveDate = leaveDate;
+      else if(empStatusCurrent==='active') delete emp.leaveDate;
     }
     showToast('✅ تم تحديث الموظف');
   } else {
     const newEmp = {id:DB.nextEmpId++,name,role,salary,startDate:start||today(),notes,status:empStatusCurrent};
     if(photo) newEmp.photo = photo;
+    if(empStatusCurrent==='leave' && leaveDate) newEmp.leaveDate = leaveDate;
     DB.employees.push(newEmp);
     showToast('✅ تم إضافة الموظف');
   }
@@ -1023,7 +1035,7 @@ function saveEmployee() {
 }
 
 function clearEmpForm() {
-  ['empName','empSalary','empStartDate','empNotes','editEmpId'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['empName','empSalary','empStartDate','empNotes','editEmpId','empLeaveDate'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('empRole').value='';
   document.getElementById('empFormTitle').textContent='➕ إضافة موظف';
   clearEmpPhoto();
@@ -1046,6 +1058,11 @@ function editEmployee(id) {
     document.getElementById('clearPhotoBtn').style.display='inline-flex';
   } else { clearEmpPhoto(); }
   setEmpStatus(emp.status||'active');
+  // Show leave date if on leave
+  if(emp.status==='leave' && emp.leaveDate) {
+    const ld = document.getElementById('empLeaveDate');
+    if(ld) ld.value = emp.leaveDate;
+  }
   document.getElementById('empName').scrollIntoView({behavior:'smooth'});
 }
 
@@ -1093,8 +1110,8 @@ function renderEmployeeList() {
       leaveCounter = `<div style="margin-top:5px;background:rgba(107,122,141,.2);border:1px solid var(--gray);border-radius:6px;padding:3px 8px;font-size:11px;color:var(--gray);font-weight:700;">🌴 منذ ${formatDuration(days)}</div>`;
     }
     return `<div style="background:var(--navy-mid);border:1.5px solid rgba(201,168,76,${isL?'.1':'.2'});border-radius:11px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;opacity:${isL?.75:1}">
-      <div style="width:42px;height:42px;border-radius:50%;overflow:hidden;flex-shrink:0;">
-        ${emp.photo ? `<img src="${emp.photo}" style="width:42px;height:42px;object-fit:cover;border-radius:50%;border:2px solid rgba(201,168,76,.3);">` : `<div style="width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,var(--gold-dark),var(--navy-card));display:flex;align-items:center;justify-content:center;font-size:18px;border:2px solid rgba(201,168,76,.3);">${getEmpEmoji(emp.role)}</div>`}
+      <div style="width:42px;height:42px;border-radius:50%;overflow:hidden;flex-shrink:0;border:2px solid rgba(201,168,76,.3);">
+        ${emp.photo ? `<img src="${emp.photo}" style="width:42px;height:42px;object-fit:cover;">` : `<div style="width:42px;height:42px;background:linear-gradient(135deg,var(--gold-dark),var(--navy-card));display:flex;align-items:center;justify-content:center;font-size:18px;">${getEmpEmoji(emp.role)}</div>`}
       </div>
       <div style="flex:1;min-width:0;">
         <div style="font-weight:700;font-size:13px;">${emp.name}</div>
