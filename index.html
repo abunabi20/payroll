@@ -976,6 +976,34 @@ function updateDate() {
 }
 
 // ============================================================
+// DATE & DURATION UTILS — يجب أن تكون قبل كل الدوال
+// ============================================================
+function daysDiff(dateStr) {
+  if (!dateStr) return 0;
+  const d = new Date(dateStr);
+  const now = new Date();
+  now.setHours(0,0,0,0); d.setHours(0,0,0,0);
+  return Math.floor((now - d) / 86400000);
+}
+
+function formatDuration(days) {
+  if (days <= 0) return 'اليوم';
+  if (days < 30) return `${days} يوم`;
+  const months = Math.floor(days / 30);
+  const rem = days % 30;
+  if (rem === 0) return `${months} شهر`;
+  return `${months} شهر و ${rem} يوم`;
+}
+
+function formatRemaining(days) {
+  if (days < 0) return { text: `منتهية منذ ${formatDuration(-days)}`, color: 'var(--red-soft)', cls: 'expired' };
+  if (days === 0) return { text: 'تنتهي اليوم!', color: 'var(--red-soft)', cls: 'expired' };
+  if (days < 60) return { text: `باقي ${formatDuration(days)}`, color: 'var(--orange)', cls: 'warning' };
+  if (days < 180) return { text: `باقي ${formatDuration(days)}`, color: 'var(--blue)', cls: 'soon' };
+  return { text: `باقي ${formatDuration(days)}`, color: 'var(--green-soft)', cls: 'ok' };
+}
+
+// ============================================================
 // EMPLOYEES
 // ============================================================
 function setEmpStatus(s) {
