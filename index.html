@@ -632,7 +632,9 @@ hr.div{border:none;border-top:1px solid rgba(201,168,76,.1);margin:18px 0;}
 
 <!-- DOCUMENTS -->
 <div class="page" id="page-documents">
-  <div class="sec-title"><div class="ib">📁</div><div><h2>المستندات</h2><p>متابعة مستندات الموظفين وتواريخ انتهائها</p></div></div>
+  <div class="sec-title"><div class="ib">📁</div><div><h2>المستندات</h2><p>متابعة مستندات الموظفين وتواريخ انتهائها</p></div>
+    <button class="btn btn-outline btn-sm" style="margin-right:auto;" onclick="refreshDocSelects();showToast('✅ تم تحديث القائمة');">🔄 تحديث القائمة</button>
+  </div>
 
   <div class="grid-2" style="margin-bottom:20px;">
     <div class="card">
@@ -736,9 +738,14 @@ function refreshAllViews() {
     else if(id==='employees') renderEmployeeList();
     else if(id==='salary') renderEmpSelector();
     else if(id==='loans') { renderLoansList(); populateLoanSelects(); }
+    else if(id==='documents') renderDocs();
+    else if(id==='alerts') renderAlerts();
     else if(id==='reports') renderReports();
     else if(id==='charts') renderCharts();
   }
+  // دائماً حدّث قوائم المستندات بعد أي تزامن
+  if(typeof refreshDocSelects === 'function') refreshDocSelects();
+  if(typeof updateAlertBadge === 'function') updateAlertBadge();
   setTimeout(() => { _refreshing = false; }, 500);
 }
 window.refreshAllViews = () => refreshAllViews();
@@ -965,7 +972,7 @@ function showPage(page) {
   if(page==='employees') renderEmployeeList();
   if(page==='salary') renderEmpSelector();
   if(page==='loans') { renderLoansList(); populateLoanSelects(); }
-  if(page==='documents') renderDocs();
+  if(page==='documents') { renderDocs(); setTimeout(refreshDocSelects, 1500); }
   if(page==='alerts') renderAlerts();
   if(page==='print') { switchPrintTab('all'); setupAllReportCheckboxes(); document.getElementById('printFromDate').value=''; document.getElementById('printToDate').value=''; }
   if(page==='reports') renderReports();
