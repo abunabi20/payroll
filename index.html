@@ -972,7 +972,10 @@ function showPage(page) {
   if(page==='employees') renderEmployeeList();
   if(page==='salary') renderEmpSelector();
   if(page==='loans') { renderLoansList(); populateLoanSelects(); }
-  if(page==='documents') { renderDocs(); setTimeout(refreshDocSelects, 1500); }
+  if(page==='documents') { 
+    renderDocs(); 
+    setTimeout(()=>{ refreshDocSelects(); renderDocs(); }, 2000); 
+  }
   if(page==='alerts') renderAlerts();
   if(page==='print') { switchPrintTab('all'); setupAllReportCheckboxes(); document.getElementById('printFromDate').value=''; document.getElementById('printToDate').value=''; }
   if(page==='reports') renderReports();
@@ -1816,17 +1819,20 @@ function initDocs() {
 
 function refreshDocSelects() {
   initDocs();
+  // استخدم window.DB إذا DB.employees فارغ
+  const emps = (DB.employees && DB.employees.length > 0) ? DB.employees : (window.DB?.employees || []);
+  const types = DB.docTypes || [];
   const empSel = document.getElementById('docEmpSelect');
   const typeSel = document.getElementById('docTypeSelect');
   if (empSel) {
     const prev = empSel.value;
     empSel.innerHTML = '<option value="">-- اختر الموظف --</option>' +
-      DB.employees.map(e => `<option value="${e.id}" ${e.id==prev?'selected':''}>${getEmpEmoji(e.role)} ${e.name}</option>`).join('');
+      emps.map(e => `<option value="${e.id}" ${e.id==prev?'selected':''}>${getEmpEmoji(e.role)} ${e.name}</option>`).join('');
   }
   if (typeSel) {
     const prev = typeSel.value;
     typeSel.innerHTML = '<option value="">-- اختر النوع --</option>' +
-      (DB.docTypes||[]).map(t => `<option value="${t}" ${t===prev?'selected':''}>${t}</option>`).join('');
+      types.map(t => `<option value="${t}" ${t===prev?'selected':''}>${t}</option>`).join('');
   }
 }
 
