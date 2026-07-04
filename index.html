@@ -263,8 +263,8 @@ hr.div{border:none;border-top:1px solid rgba(201,168,76,.1);margin:18px 0;}
 ::-webkit-scrollbar-track{background:var(--navy);}
 ::-webkit-scrollbar-thumb{background:var(--gold-dark);border-radius:3px;}
 
-/* RESPONSIVE */
-@media(max-width:600px){.stats-row{grid-template-columns:1fr 1fr;}.header-inner{padding:10px 14px;}.main{padding:14px 10px;}.rm-grid{grid-template-columns:repeat(4,1fr);}}
+@media(max-width:900px){.grid-2,.grid-3{grid-template-columns:1fr;}.emp-page-grid{grid-template-columns:1fr!important;}.emp-page-grid .card:nth-child(1){order:1!important;}.emp-page-grid .card:nth-child(2){order:2!important;}}
+@media(max-width:600px){.stats-row{grid-template-columns:1fr 1fr;}.header-inner{padding:10px 14px;}.main{padding:14px 10px;}.rm-grid{grid-template-columns:repeat(4,1fr);}.emp-page-grid{grid-template-columns:1fr!important;}}
 
 /* FIREBASE SETUP SCREEN */
 .setup-screen{background:var(--navy-card);border:1px solid rgba(201,168,76,.25);border-radius:20px;padding:30px;max-width:600px;margin:40px auto;}
@@ -359,8 +359,12 @@ hr.div{border:none;border-top:1px solid rgba(201,168,76,.1);margin:18px 0;}
 <!-- EMPLOYEES -->
 <div class="page" id="page-employees">
   <div class="sec-title"><div class="ib">👥</div><div><h2>إدارة الموظفين</h2><p>إضافة وتعديل</p></div></div>
-  <div class="grid-2">
-    <div class="card">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;" class="emp-page-grid">
+    <div class="card" style="order:2;">
+      <div class="card-title">📋 قائمة الموظفين (<span id="empCount">0</span>)</div>
+      <div id="empListCards" style="max-height:600px;overflow-y:auto;padding-left:4px;"></div>
+    </div>
+    <div class="card" style="order:1;">
       <div class="card-title" id="empFormTitle">➕ إضافة موظف</div>
       <input type="hidden" id="editEmpId">
 
@@ -400,18 +404,14 @@ hr.div{border:none;border-top:1px solid rgba(201,168,76,.1);margin:18px 0;}
       </div>
       <div class="form-group" id="leaveDateGroup" style="display:none;">
         <label>📅 تاريخ بداية الإجازة</label>
-        <input type="date" id="empLeaveDate" placeholder="متى سافر؟">
-        <div style="font-size:11px;color:var(--white-dim);margin-top:4px;">يُستخدم لحساب عداد مدة الإجازة</div>
+        <input type="date" id="empLeaveDate">
+        <div style="font-size:11px;color:var(--white-dim);margin-top:4px;">يُستخدم لحساب عداد مدة الإجازة في القائمة</div>
       </div>
       <div class="form-group"><label>ملاحظات</label><textarea id="empNotes" rows="2" placeholder="ملاحظات..."></textarea></div>
       <div style="display:flex;gap:8px;">
         <button class="btn btn-gold" onclick="saveEmployee()">💾 حفظ الموظف</button>
         <button class="btn btn-outline" onclick="clearEmpForm()">🔄 مسح</button>
       </div>
-    </div>
-    <div class="card">
-      <div class="card-title">📋 قائمة الموظفين (<span id="empCount">0</span>)</div>
-      <div id="empListCards" style="max-height:520px;overflow-y:auto;padding-left:4px;"></div>
     </div>
   </div>
 </div>
@@ -1058,10 +1058,12 @@ function editEmployee(id) {
     document.getElementById('clearPhotoBtn').style.display='inline-flex';
   } else { clearEmpPhoto(); }
   setEmpStatus(emp.status||'active');
-  // Show leave date if on leave
-  if(emp.status==='leave' && emp.leaveDate) {
+  // دائماً أظهر تاريخ الإجازة إذا الموظف في إجازة
+  if(emp.status==='leave') {
+    const ldg = document.getElementById('leaveDateGroup');
+    if(ldg) ldg.style.display = 'block';
     const ld = document.getElementById('empLeaveDate');
-    if(ld) ld.value = emp.leaveDate;
+    if(ld) ld.value = emp.leaveDate || '';
   }
   document.getElementById('empName').scrollIntoView({behavior:'smooth'});
 }
@@ -1089,12 +1091,68 @@ function confirmDeleteEmp(id) {
 }
 
 function toggleLeave(id) {
-  const emp=getEmp(id); if(!emp) return;
-  emp.status=emp.status==='active'?'leave':'active';
-  if(emp.status==='leave') emp.leaveDate=today();
-  else delete emp.leaveDate;
-  save(); renderEmployeeList();
-  showToast(emp.status==='leave'?'🌴 تم تعيينه في إجازة':'✅ تم إعادته لرأس العمل');
+  const emp = getEmp(id); if(!emp) return;
+  if(emp.status === 'active') {
+    // يفتح نافذة لإدخال تاريخ الإجازة
+    openModal(`
+      <div class="modal-title">🌴 تسجيل إجازة</div>
+      <div style="text-align:center;padding:10px 0;">
+        <div style="font-size:32px;margin-bottom:8px;">${getEmpEmoji(emp.role)}</div>
+        <div style="font-weight:800;font-size:16px;color:var(--white);">${emp.name}</div>
+      </div>
+      <div class="form-group" style="margin-top:14px;">
+        <label>📅 تاريخ بداية الإجازة <span class="req">*</span></label>
+        <input type="date" id="leaveStartDate" value="${today()}">
+        <div style="font-size:11px;color:var(--white-dim);margin-top:4px;">يُستخدم لحساب عداد مدة الإجازة</div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:14px;">
+        <button class="btn btn-gold" style="flex:1;justify-content:center;" onclick="confirmLeave(${id})">✅ تأكيد الإجازة</button>
+        <button class="btn btn-outline" style="flex:1;justify-content:center;" onclick="closeModal()">↩️ إلغاء</button>
+      </div>`);
+  } else {
+    // إرجاع لرأس العمل مباشرة
+    emp.status = 'active';
+    delete emp.leaveDate;
+    save(); renderEmployeeList();
+    showToast('✅ تم إعادته لرأس العمل');
+  }
+}
+
+function editLeaveDate(id) {
+  const emp = getEmp(id); if(!emp) return;
+  openModal(`
+    <div class="modal-title">📅 تعديل تاريخ الإجازة</div>
+    <div style="text-align:center;padding:8px 0 14px;">
+      <div style="font-size:28px;">${getEmpEmoji(emp.role)}</div>
+      <div style="font-weight:800;color:var(--white);">${emp.name}</div>
+    </div>
+    <div class="form-group">
+      <label>تاريخ بداية الإجازة</label>
+      <input type="date" id="editLeaveStartDate" value="${emp.leaveDate||today()}">
+    </div>
+    <div style="display:flex;gap:8px;margin-top:14px;">
+      <button class="btn btn-gold" style="flex:1;justify-content:center;" onclick="saveLeaveDate(${id})">💾 حفظ</button>
+      <button class="btn btn-outline" style="flex:1;justify-content:center;" onclick="closeModal()">↩️ إلغاء</button>
+    </div>`);
+}
+
+function saveLeaveDate(id) {
+  const emp = getEmp(id); if(!emp) return;
+  const date = document.getElementById('editLeaveStartDate').value;
+  if(!date) { showToast('أدخل التاريخ','error'); return; }
+  emp.leaveDate = date;
+  save(); closeModal(); renderEmployeeList();
+  showToast('✅ تم حفظ تاريخ الإجازة');
+}
+
+function confirmLeave(id) {
+  const emp = getEmp(id); if(!emp) return;
+  const date = document.getElementById('leaveStartDate').value;
+  if(!date) { showToast('أدخل تاريخ الإجازة','error'); return; }
+  emp.status = 'leave';
+  emp.leaveDate = date;
+  save(); closeModal(); renderEmployeeList();
+  showToast('🌴 تم تسجيل الإجازة');
 }
 
 function renderEmployeeList() {
@@ -1103,11 +1161,19 @@ function renderEmployeeList() {
   if(!DB.employees.length){c.innerHTML='<div class="empty"><div class="ei">👤</div><p>لا يوجد موظفون</p></div>';return;}
   c.innerHTML=DB.employees.map(emp=>{
     const lb=getEmpLoanBal(emp.id),isL=emp.status==='leave';
-    // حساب مدة الإجازة
     let leaveCounter = '';
-    if(isL && emp.leaveDate) {
-      const days = daysDiff(emp.leaveDate);
-      leaveCounter = `<div style="margin-top:5px;background:rgba(107,122,141,.2);border:1px solid var(--gray);border-radius:6px;padding:3px 8px;font-size:11px;color:var(--gray);font-weight:700;">🌴 منذ ${formatDuration(days)}</div>`;
+    if(isL) {
+      if(emp.leaveDate) {
+        const days = daysDiff(emp.leaveDate);
+        leaveCounter = `<div style="margin-top:5px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+          <div style="background:rgba(107,122,141,.2);border:1px solid var(--gray);border-radius:6px;padding:3px 8px;font-size:11px;color:var(--gray);font-weight:700;">🌴 منذ ${formatDuration(days)}</div>
+          <button class="btn btn-sm" style="padding:2px 8px;font-size:10px;background:rgba(107,122,141,.15);border:1px solid var(--gray);color:var(--gray);" onclick="editLeaveDate(${emp.id})">📅 تعديل التاريخ</button>
+        </div>`;
+      } else {
+        leaveCounter = `<div style="margin-top:5px;">
+          <button class="btn btn-sm" style="padding:3px 10px;font-size:11px;background:rgba(201,168,76,.15);border:1px solid var(--gold);color:var(--gold-light);" onclick="editLeaveDate(${emp.id})">📅 أضف تاريخ الإجازة</button>
+        </div>`;
+      }
     }
     return `<div style="background:var(--navy-mid);border:1.5px solid rgba(201,168,76,${isL?'.1':'.2'});border-radius:11px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;opacity:${isL?.75:1}">
       <div style="width:42px;height:42px;border-radius:50%;overflow:hidden;flex-shrink:0;border:2px solid rgba(201,168,76,.3);">
